@@ -1,0 +1,82 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    active: dev
+  main:
+    allow-circular-references: true
+  datasource:
+    driver-class-name: ${fc.datasource.driver-class-name}
+    url: jdbc:mysql://${fc.datasource.host}:${fc.datasource.port}/${fc.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${fc.datasource.username}
+    password: ${fc.datasource.password}
+    type: ${fc.datasource.type}
+  data:
+    redis:
+      host: ${fc.redis.host}
+      database: ${fc.redis.database}
+      port: ${fc.redis.port}
+  servlet:
+    multipart:
+      max-file-size: 5242880
+      max-request-size: 104857600
+  web:
+    resources:
+      static-locations: classpath:/static/
+  task:
+    scheduling:
+      pool:
+        size: 10
+
+comment:
+  auto-cleanup:
+    days: 7  # 逻辑删除后自动清理的天数，默认7天
+    enabled: true  # 是否启用自动清理
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.fc.entity,com.fc.vo.movie,com.fc.dto.movie
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com:
+      fc:
+        mapper: debug
+        service: info
+        controller: info
+        mock: debug
+    org:
+      springframework:
+        scheduling: debug
+
+fc:
+  jwt:
+    secret-key: FilmCommentSystem2025SecureJWTKeyForAuthentication
+    ttl: 7200000
+    token-name: token
+
+  alioss:
+    endpoint: ${fc.alioss.endpoint}
+    access-key-id: ${fc.alioss.access-key-id}
+    access-key-secret: ${fc.alioss.access-key-secret}
+    bucket-name: ${fc.alioss.bucket-name}
+
+  default:
+    avatar-url: "https://${fc.alioss.bucket-name}.${fc.alioss.endpoint}/avatars/ae17ae4031b147eba25ab5b774d3e757.png"
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    url: /v3/api-docs
+    enabled: true
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+
+ollama:
+  api:
+    base-url: http://localhost:11434
+    model: qwen2:1.5b

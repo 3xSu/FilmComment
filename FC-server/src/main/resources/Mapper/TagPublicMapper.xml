@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fc.mapper.api.TagPublicMapper">
+
+    <!-- 游标分页查询标签（按创建时间倒序） -->
+    <select id="pageQueryTagsByCursor" resultType="com.fc.entity.CreativeTag">
+        SELECT tag_id, tag_name, create_time, update_time, hot_score, usage_count
+        FROM creative_tag
+        WHERE 1=1
+        <if test="keyword != null and keyword != ''">
+            AND tag_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="cursor != null">
+            AND create_time &lt; #{cursor}
+        </if>
+        ORDER BY create_time DESC
+        LIMIT #{size}
+    </select>
+
+    <!-- 前缀匹配搜索标签（按标签名称前缀匹配） -->
+    <select id="searchTagsByPrefix" resultType="com.fc.entity.CreativeTag">
+        SELECT tag_id, tag_name, create_time, update_time, hot_score, usage_count
+        FROM creative_tag
+        WHERE 1=1
+        <if test="keyword != null and keyword != ''">
+            AND tag_name LIKE CONCAT(#{keyword}, '%')
+        </if>
+        <if test="cursor != null">
+            AND create_time &lt; #{cursor}
+        </if>
+        ORDER BY tag_name ASC, create_time DESC
+        LIMIT #{size}
+    </select>
+
+    <!-- 统计前缀匹配的标签数量 -->
+    <select id="countTagsByPrefix" resultType="long">
+        SELECT COUNT(*) FROM creative_tag
+        WHERE 1=1
+        <if test="keyword != null and keyword != ''">
+            AND tag_name LIKE CONCAT(#{keyword}, '%')
+        </if>
+    </select>
+
+    <!-- 统计标签数量 -->
+    <select id="countTags" resultType="long">
+        SELECT COUNT(*) FROM creative_tag
+        WHERE 1=1
+        <if test="keyword != null and keyword != ''">
+            AND tag_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+    </select>
+
+    <!-- 查询热门标签（按使用次数排序） -->
+    <select id="getHotTags" resultType="com.fc.vo.tag.TagVO">
+        SELECT
+            ct.tag_id,
+            ct.tag_name,
+            COUNT(pt.id) as usage_count,
+            ct.hot_score
+        FROM creative_tag ct
+                 LEFT JOIN post_tag pt ON ct.tag_id = pt.tag_id
+        GROUP BY ct.tag_id, ct.tag_name
+        ORDER BY usage_count DESC, ct.create_time DESC
+            LIMIT #{limit}
+    </select>
+
+</mapper>

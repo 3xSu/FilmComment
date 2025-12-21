@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fc.mapper.admin.MoviePublicMapper">
+
+    <resultMap id="MovieResultMap" type="com.fc.entity.Movie">
+        <id column="movie_id" property="movieId"/>
+        <result column="title" property="title"/>
+        <result column="duration" property="duration"/>
+        <result column="intro" property="intro"/>
+        <result column="poster_url" property="posterUrl"/>
+        <result column="release_date" property="releaseDate"/>
+        <result column="avg_rating" property="avgRating"/>
+        <result column="rating_count" property="ratingCount"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="MovieSearchVOResultMap" type="com.fc.vo.movie.admin.MovieSearchVO">
+        <id column="movie_id" property="movieId"/>
+        <result column="title" property="title"/>
+        <result column="duration" property="duration"/>
+        <result column="intro" property="intro"/>
+        <result column="poster_url" property="posterUrl"/>
+        <result column="release_date" property="releaseDate"/>
+        <result column="avg_rating" property="avgRating"/>
+        <result column="rating_count" property="ratingCount"/>
+    </resultMap>
+
+    <!-- 统计符合条件的电影数量 -->
+    <select id="countMoviesByCondition" resultType="long">
+        select count(*) from movie
+        <where>
+            is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                and title like concat('%', #{keyword}, '%')
+            </if>
+            <if test="minDuration != null">
+                and duration >= #{minDuration}
+            </if>
+            <if test="maxDuration != null">
+                and duration &lt;= #{maxDuration}
+            </if>
+            <if test="releaseYear != null">
+                and year(release_date) = #{releaseYear}
+            </if>
+        </where>
+    </select>
+
+    <!-- 分页查询符合条件的电影 -->
+    <select id="searchMoviesByCondition" resultMap="MovieSearchVOResultMap">
+        select movie_id, title, duration, intro, poster_url, release_date, avg_rating, rating_count
+        from movie
+        <where>
+            is_deleted = 0
+            <if test="condition.keyword != null and condition.keyword != ''">
+                and title like concat('%', #{condition.keyword}, '%')
+            </if>
+            <if test="condition.minDuration != null">
+                and duration >= #{condition.minDuration}
+            </if>
+            <if test="condition.maxDuration != null">
+                and duration &lt;= #{condition.maxDuration}
+            </if>
+            <if test="condition.releaseYear != null">
+                and year(release_date) = #{condition.releaseYear}
+            </if>
+        </where>
+        <!-- 排序逻辑 -->
+        <choose>
+            <when test="condition.sortType != null and condition.sortType == 2">
+                order by avg_rating desc
+            </when>
+            <when test="condition.sortType != null and condition.sortType == 3">
+                order by release_date desc
+            </when>
+            <otherwise>
+                <!-- 默认按相关性排序（有关键词时按关键词匹配度，无关键词时按创建时间） -->
+                <if test="condition.keyword != null and condition.keyword != ''">
+                    order by
+                    case when title = #{condition.keyword} then 0
+                    when title like concat(#{condition.keyword}, '%') then 1
+                    else 2 end,
+                    create_time desc
+                </if>
+                <if test="condition.keyword == null or condition.keyword == ''">
+                    order by create_time desc
+                </if>
+            </otherwise>
+        </choose>
+        limit #{offset}, #{size}
+    </select>
+
+
+</mapper>
