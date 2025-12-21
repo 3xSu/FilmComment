@@ -1,0 +1,20 @@
+#fc:
+#  datasource:
+#    driver-class-name:
+#    host:
+#    port:
+#    database:
+#    username:
+#    password:
+#    type:
+#
+#  redis:
+#    host:
+#    port:
+#    database:
+#
+#  alioss:
+#    endpoint:
+#    access-key-id:
+#    access-key-secret:
+#    bucket-name:

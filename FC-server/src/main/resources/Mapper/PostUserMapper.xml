@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fc.mapper.user.PostUserMapper">
+
+    <!-- 插入帖子标签关联 -->
+    <insert id="insertPostTags" parameterType="list">
+        insert into post_tag(post_id, tag_id, create_time) values
+        <foreach collection="postTags" item="postTag" separator=",">
+            (#{postTag.postId}, #{postTag.tagId}, #{postTag.createTime})
+        </foreach>
+    </insert>
+
+    <!-- 插入帖子图片 -->
+    <insert id="insertPostImages" parameterType="list">
+        insert into post_images(post_id, image_url, sort_order, create_time) values
+        <foreach collection="postImages" item="image" separator=",">
+            (#{image.postId}, #{image.imageUrl}, #{image.sortOrder}, #{image.createTime})
+        </foreach>
+    </insert>
+
+    <!-- 根据帖子ID查询Tag -->
+    <select id="getTagsByPostId" resultType="com.fc.vo.tag.TagVO">
+        SELECT ct.tag_id, ct.tag_name
+        FROM creative_tag ct
+                 INNER JOIN post_tag pt ON ct.tag_id = pt.tag_id
+        WHERE pt.post_id = #{postId}
+    </select>
+
+    <insert id="insertPostLike" useGeneratedKeys="true" keyProperty="likeId">
+        insert into post_like(user_id, post_id, create_time)
+        values(#{userId}, #{postId}, #{createTime})
+    </insert>
+
+    <!-- 游标分页查询用户收藏的帖子 -->
+    <select id="getCollectionsByCursor" resultType="com.fc.entity.Post">
+        select p.*, u.username, u.avatar_url, m.title as movie_title, c.create_time as collection_time
+        from collection c
+        left join post p on c.post_id = p.post_id
+        left join users u on p.user_id = u.user_id
+        left join movie m on p.movie_id = m.movie_id
+        where c.user_id = #{userId} and p.is_deleted = 0
+        <if test="cursor != null">
+            and c.create_time &lt; #{cursor}
+        </if>
+        order by c.create_time desc
+        limit #{size}
+    </select>
+
+</mapper>
