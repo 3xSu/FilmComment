@@ -1,5 +1,6 @@
 package com.fc.dto.post;
 
+import com.fc.enums.PostInteractionType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -14,6 +15,6 @@ public class PostInteractionDTO {
     private Long postId;
 
     @NotNull(message = "操作类型不能为空")
-    @Schema(description = "操作类型：1-点赞，2-收藏", example = "1")
-    private Integer operationType;
+    @Schema(description = "操作类型")
+    private PostInteractionType operationType;
 }

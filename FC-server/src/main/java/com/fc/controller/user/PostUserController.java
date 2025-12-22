@@ -3,6 +3,7 @@ package com.fc.controller.user;
 import com.fc.dto.post.CollectionPageQueryDTO;
 import com.fc.dto.post.PostInteractionDTO;
 import com.fc.dto.post.PostPublishDTO;
+import com.fc.enums.PostInteractionType;
 import com.fc.result.PageResult;
 import com.fc.result.Result;
 import com.fc.service.user.PostUserService;
@@ -57,7 +58,7 @@ public class PostUserController {
         log.info("点赞帖子: {}", postInteractionDTO);
 
         // 验证操作类型
-        if (postInteractionDTO.getOperationType() != 1) {
+        if (postInteractionDTO.getOperationType() != PostInteractionType.LIKE) {
             return Result.error("操作类型错误");
         }
 
@@ -79,7 +80,7 @@ public class PostUserController {
         log.info("取消点赞帖子: {}", postInteractionDTO);
 
         // 验证操作类型
-        if (postInteractionDTO.getOperationType() != 1) {
+        if (postInteractionDTO.getOperationType() != PostInteractionType.LIKE) {
             return Result.error("操作类型错误");
         }
 
@@ -118,7 +119,7 @@ public class PostUserController {
         log.info("收藏帖子: {}", postInteractionDTO);
 
         // 验证操作类型
-        if (postInteractionDTO.getOperationType() != 2) {
+        if (postInteractionDTO.getOperationType() != PostInteractionType.COLLECT) {
             return Result.error("操作类型错误");
         }
 
@@ -140,7 +141,7 @@ public class PostUserController {
         log.info("取消收藏帖子: {}", postInteractionDTO);
 
         // 验证操作类型
-        if (postInteractionDTO.getOperationType() != 2) {
+        if (postInteractionDTO.getOperationType() != PostInteractionType.COLLECT) {
             return Result.error("操作类型错误");
         }
 
