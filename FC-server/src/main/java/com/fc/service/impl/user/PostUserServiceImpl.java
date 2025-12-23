@@ -4,6 +4,7 @@ import com.fc.context.BaseContext;
 import com.fc.dto.post.CollectionPageQueryDTO;
 import com.fc.dto.post.PostPublishDTO;
 import com.fc.entity.*;
+import com.fc.enums.PostTypeEnum;
 import com.fc.exception.PostNotFoundException;
 import com.fc.exception.UnauthorizedException;
 import com.fc.mapper.admin.MovieAdminMapper;
@@ -73,14 +74,14 @@ public class PostUserServiceImpl implements PostUserService {
         Long userId = BaseContext.getCurrentId();
         Long movieId = postPublishDTO.getMovieId();
         LocalDateTime now = LocalDateTime.now();
+        Integer postType = postPublishDTO.getPostType();
 
         // 用于事务回滚时的资源清理
         Post post = null;
 
         try {
             // 1. 前置验证和权限检查
-            // 根据帖子类型判断是否为深度讨论区帖子，检查权限
-            if (postPublishDTO.isSpoilerArea()) {
+            if (PostTypeEnum.isSpoiler(postType)) { //判断是否剧透
                 checkSpoilerPermission(userId, movieId);
             }
 

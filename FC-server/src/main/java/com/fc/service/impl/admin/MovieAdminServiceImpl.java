@@ -1,5 +1,6 @@
 package com.fc.service.impl.admin;
 
+import com.alibaba.druid.util.StringUtils;
 import com.fc.constant.MessageConstant;
 import com.fc.dto.movie.admin.MovieAddDTO;
 import com.fc.dto.movie.admin.MovieUpdateDTO;
@@ -15,6 +16,7 @@ import com.fc.vo.movie.admin.MovieVO;
 import com.fc.vo.movie.admin.PosterUploadVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -35,6 +37,8 @@ public class MovieAdminServiceImpl implements MovieAdminService {
     @Autowired
     private AliOssUtil aliOssUtil;
 
+    @Value("${fc.default.movie-poster-url}")
+    private String defaultMoviePosterUrl;
 
     /**
      * 添加电影信息
@@ -56,7 +60,9 @@ public class MovieAdminServiceImpl implements MovieAdminService {
                 .title(title)
                 .duration(movieAddDTO.getDuration())
                 .intro(movieAddDTO.getIntro())
-                .posterUrl(movieAddDTO.getPosterUrl())
+                .posterUrl(StringUtils.isEmpty(movieAddDTO.getPosterUrl())
+                        ? defaultMoviePosterUrl
+                        : movieAddDTO.getPosterUrl())
                 .releaseDate(movieAddDTO.getReleaseDate())
                 .avgRating(BigDecimal.ZERO) // 初始评分为0
                 .ratingCount(0)            // 初始评分人数为0

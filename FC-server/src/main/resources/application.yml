@@ -65,7 +65,8 @@ fc:
     bucket-name: ${fc.alioss.bucket-name}
 
   default:
-    avatar-url: "https://${fc.alioss.bucket-name}.${fc.alioss.endpoint}/avatars/ae17ae4031b147eba25ab5b774d3e757.png"
+    avatar-url: ${fc.default.avatar-url}
+    movie-poster-url: ${fc.default.movie-poster-url}
 
 springdoc:
   swagger-ui:

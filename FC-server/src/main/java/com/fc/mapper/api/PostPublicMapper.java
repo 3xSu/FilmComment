@@ -4,6 +4,7 @@ import com.fc.entity.Post;
 import com.fc.vo.post.PostSearchVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,4 +39,24 @@ public interface PostPublicMapper {
                     @Param("postType") Integer postType,
                     @Param("contentForm") Integer contentForm,
                     @Param("spoilerType") Integer spoilerType);
+
+    /**
+     * 根据用户ID查询帖子列表
+     * @param cursor 游标（时间戳）
+     * @param size 每页大小
+     * @param userId 用户ID
+     * @return 帖子列表
+     */
+    List<PostSearchVO> pageQueryPostsByUserId(
+            @Param("cursor") LocalDateTime cursor,
+            @Param("size") int size,
+            @Param("userId") Long userId);
+
+    /**
+     * 统计用户发布的帖子总数
+     * @param userId 用户ID
+     * @return 帖子总数
+     */
+    @Select("select count(*) from post where user_id = #{userId} and is_deleted = 0")
+    int countPostsByUserId(@Param("userId") Long userId);
 }

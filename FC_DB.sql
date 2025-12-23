@@ -351,3 +351,8 @@ CREATE TABLE IF NOT EXISTS notification (
     CHECK (type IN (1,2,3)),
     CHECK (is_read IN (0,1))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+USE FilmComment_DB;
+ALTER TABLE ai_record 
+ADD COLUMN update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+CREATE INDEX idx_ai_record_update_time ON ai_record(update_time DESC);

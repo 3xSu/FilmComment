@@ -6,6 +6,7 @@ import com.fc.dto.post.PostPageQueryDTO;
 import com.fc.entity.Post;
 import com.fc.entity.User;
 import com.fc.exception.PostNotFoundException;
+import com.fc.exception.UserNotFoundException;
 import com.fc.mapper.api.AccountMapper;
 import com.fc.mapper.api.PostPublicMapper;
 import com.fc.mapper.user.PostUserMapper;
@@ -170,6 +171,67 @@ public class PostPublicServiceImpl implements PostPublicService {
     }
 
     /**
+     * 根据用户ID分页查询帖子
+     * @param userId 用户ID
+     * @param pageQueryDTO 分页参数
+     * @return
+     */
+    @Override
+    public PageResult pageQueryPostsByUserId(Long userId, PostPageQueryDTO pageQueryDTO) {
+        // 验证用户是否存在
+        User user = accountMapper.getByUserId(userId);
+        if (user == null) {
+            throw new UserNotFoundException("用户不存在");
+        }
+
+        // 获取分页参数
+        int size = pageQueryDTO.getSize() != null ? pageQueryDTO.getSize() : 20;
+
+        // 查询帖子列表
+        List<PostSearchVO> records = postPublicMapper.pageQueryPostsByUserId(
+                pageQueryDTO.getCursor(), size, userId);
+
+        // 为每个帖子设置标签信息
+        records = records.stream()
+                .map(this::enrichPostWithTags)
+                .collect(Collectors.toList());
+
+        // 构建分页结果
+        PageResult pageResult = new PageResult();
+        pageResult.setRecords(records);
+
+        // 设置是否有下一页和下一个游标
+        if (!records.isEmpty()) {
+            PostSearchVO lastRecord = records.get(records.size() - 1);
+            pageResult.setNextCursor(lastRecord.getCreateTime());
+            pageResult.setHasNext(records.size() == size);
+        } else {
+            pageResult.setHasNext(false);
+        }
+
+        // 对于第一页查询，返回总记录数；后续页不返回
+        if (pageQueryDTO.getCursor() == null) {
+            long total = postPublicMapper.countPostsByUserId(userId);
+            pageResult.setTotal(total);
+        } else {
+            pageResult.setTotal(-1);
+        }
+
+        return pageResult;
+    }
+
+    /**
+     * 统计用户发布的帖子数量
+     * @param userId 用户ID
+     * @return
+     */
+    @Override
+    public int countUserPosts(Long userId) {
+        log.info("统计用户帖子数量: userId={}", userId);
+        return postPublicMapper.countPostsByUserId(userId);
+    }
+
+    /**
      * 构建完整的PostVO对象
      * @param post 帖子实体
      * @return PostVO
@@ -243,4 +305,5 @@ public class PostPublicServiceImpl implements PostPublicService {
                 .collected(false) // 需要后续实现收藏状态检查
                 .build();
     }
+
 }

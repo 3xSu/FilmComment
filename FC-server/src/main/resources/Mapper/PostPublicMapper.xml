@@ -87,4 +87,27 @@
         </if>
     </select>
 
+    <!-- 根据用户ID查询帖子列表 -->
+    <select id="pageQueryPostsByUserId" resultType="com.fc.vo.post.PostSearchVO">
+        SELECT
+        p.post_id,
+        p.user_id,
+        p.title,
+        p.content,
+        p.create_time,
+        p.view_count,
+        p.like_count,
+        p.collect_count
+        FROM post p
+        WHERE
+        p.user_id = #{userId}
+        AND p.is_deleted = 0
+        <if test="cursor != null">
+            AND p.create_time &lt; #{cursor}
+        </if>
+        ORDER BY p.create_time DESC
+        limit #{size}
+    </select>
+
+
 </mapper>

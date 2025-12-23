@@ -19,4 +19,19 @@ public interface PostPublicService {
      * @return 帖子详情
      */
     PostVO getPostById(Long postId);
+
+    /**
+     * 根据用户ID分页查询帖子
+     * @param userId 用户ID
+     * @param pageQueryDTO 分页参数
+     * @return 分页结果
+     */
+    PageResult pageQueryPostsByUserId(Long userId, PostPageQueryDTO pageQueryDTO);
+
+    /**
+     * 统计用户发布的帖子数量
+     * @param userId 用户ID
+     * @return 帖子数量
+     */
+    int countUserPosts(Long userId);
 }

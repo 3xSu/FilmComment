@@ -23,6 +23,7 @@ public class AiRecord {
     private Integer version;     // 版本号
     private Integer threshold;   // 更新阈值
     private LocalDateTime createTime;
+    private LocalDateTime updateTime;
     @Schema(description = "帖子类型:1-无剧透普通,2-有剧透深度,3-二创无剧透,4-二创有剧透")
     private Integer postType;
 }
