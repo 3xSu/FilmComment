@@ -31,19 +31,4 @@ public class MovieCommentSummaryDTO {
     @Schema(description = "帖子类型筛选：1-无剧透普通，2-有剧透深度，3-二创无剧透，4-二创有剧透")
     private Integer postType;
 
-    /**
-     * 根据帖子类型判断是否包含剧透内容
-     * @return true-包含剧透，false-不包含剧透
-     */
-    public boolean includeSpoilers() {
-        return postType == null || postType == 2 || postType == 4;
-    }
-
-    /**
-     * 根据帖子类型判断是否包含二创内容
-     * @return true-包含二创，false-不包含二创
-     */
-    public boolean includeCreative() {
-        return postType == null || postType == 3 || postType == 4;
-    }
 }

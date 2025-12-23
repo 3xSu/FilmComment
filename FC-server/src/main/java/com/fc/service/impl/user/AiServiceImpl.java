@@ -5,6 +5,7 @@ import com.fc.context.BaseContext;
 import com.fc.dto.ai.MovieCommentSummaryDTO;
 import com.fc.entity.AiRecord;
 import com.fc.entity.Movie;
+import com.fc.enums.PostTypeEnum;
 import com.fc.exception.MovieNotFoundException;
 import com.fc.mapper.admin.MovieAdminMapper;
 import com.fc.mapper.user.AiRecordMapper;
@@ -64,29 +65,43 @@ public class AiServiceImpl implements AiService {
         log.info("智能生成电影评论AI总结: userId={}, movieId={}, postType={}, threshold={}",
                 userId, movieId, postType, updateThreshold);
 
-        // 1. 验证电影是否存在
+        // 1. 校验postType，仅允许1、2类型，其他类型直接返回提示
+        if (postType != null && (postType == 3 || postType == 4)) {
+            log.info("二创区帖子不生成AI总结: postType={}", postType);
+            Movie movie = movieAdminMapper.getByMovieId(movieId);
+            if (movie == null) {
+                throw new MovieNotFoundException(MessageConstant.MOVIE_NOT_FOUND);
+            }
+            return MovieCommentSummaryVO.builder()
+                    .movieId(movieId)
+                    .movieTitle(movie.getTitle())
+                    .createTime(LocalDateTime.now())
+                    .build();
+        }
+
+        // 2. 验证电影是否存在
         Movie movie = movieAdminMapper.getByMovieId(movieId);
         if (movie == null) {
             throw new MovieNotFoundException(MessageConstant.MOVIE_NOT_FOUND);
         }
 
-        // 2. 获取当前电影帖子数量
+        // 3. 获取当前电影帖子数量
         Integer currentPostCount = getCurrentPostCount(movieId, postType);
 
-        // 3. 检查帖子数量是否足够生成AI总结
+        // 4. 检查帖子数量是否足够生成AI总结
         if (currentPostCount == 0 || currentPostCount < updateThreshold) {
             log.info("帖子数量不足，无法生成AI总结: movieId={}, postType={}, currentPostCount={}, threshold={}",
                     movieId, postType, currentPostCount, updateThreshold);
             return buildInsufficientPostsSummary(movie, currentPostCount, updateThreshold, postType);
         }
 
-        // 4. 检查强制刷新标志
+        // 5. 检查强制刷新标志
         if (Boolean.TRUE.equals(summaryDTO.getForceRefresh())) {
             log.info("强制刷新AI总结: movieId={}, postType={}", movieId, postType);
             return generateNewSummary(userId, movieId, movie, summaryDTO, currentPostCount, updateThreshold, postType);
         }
 
-        // 5. 检查是否有可用的现有总结
+        // 6. 检查是否有可用的现有总结
         AiRecord cachedSummary = getAvailableSummary(movieId, currentPostCount, updateThreshold, postType);
         if (cachedSummary != null) {
             log.info("使用缓存的AI总结: recordId={}, postType={}, 当前帖子数={}, 缓存帖子数={}",
@@ -94,7 +109,7 @@ public class AiServiceImpl implements AiService {
             return buildSummaryVO(cachedSummary, movie);
         }
 
-        // 6. 需要重新生成总结
+        // 7. 需要重新生成总结
         return generateNewSummary(userId, movieId, movie, summaryDTO, currentPostCount, updateThreshold, postType);
     }
 
@@ -280,12 +295,12 @@ public class AiServiceImpl implements AiService {
      */
     private String getPostTypeDescription(Integer postType) {
         if (postType == null) return "";
-        switch (postType) {
-            case 1: return "无剧透普通";
-            case 2: return "有剧透深度";
-            case 3: return "二创无剧透";
-            case 4: return "二创有剧透";
-            default: return "";
+        try {
+            PostTypeEnum type = PostTypeEnum.getByCode(postType);
+            return type.getDesc(); // 需要在枚举类中添加getDesc()方法
+        } catch (IllegalArgumentException e) {
+            log.warn("无效的postType: {}", postType);
+            return "";
         }
     }
 
@@ -361,14 +376,23 @@ public class AiServiceImpl implements AiService {
                 .build();
     }
 
+    /**
+     * 计算 AI 总结相关的统计数据
+     * @param movieId
+     * @param postType
+     * @param sampleSize
+     * @return
+     */
     private MovieCommentSummaryVO.SummaryStats calculateSummaryStats(Long movieId, Integer postType, int sampleSize) {
         try {
             // 获取各种类型的评论数量
             Integer totalComments = getCurrentPostCount(movieId, postType);
-            Integer noSpoilerComments = postType == null || postType == 1 || postType == 3 ?
-                    getCurrentPostCount(movieId, 1) + getCurrentPostCount(movieId, 3) : 0;
-            Integer spoilerComments = postType == null || postType == 2 || postType == 4 ?
-                    getCurrentPostCount(movieId, 2) + getCurrentPostCount(movieId, 4) : 0;
+            Integer noSpoilerComments = (postType == null || postType == 1)
+                    ? getCurrentPostCount(movieId, 1)
+                    : 0;
+            Integer spoilerComments = (postType == null || postType == 2)
+                    ? getCurrentPostCount(movieId, 2)
+                    : 0;
 
             // 以后添加情感分析来计算比例
 //            Double positiveRatio = calculatePositiveRatio(movieId, postType);

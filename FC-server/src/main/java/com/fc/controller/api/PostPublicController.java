@@ -52,4 +52,34 @@ public class PostPublicController {
         PostVO postVO = postPublicService.getPostById(postId);
         return Result.success(postVO);
     }
+
+    /**
+     * 根据用户ID查询帖子列表
+     * @param userId 用户ID
+     * @param pageQueryDTO 分页参数
+     * @return 分页结果
+     */
+    @GetMapping("/user/{userId}")
+    @Operation(summary = "根据用户ID查询帖子列表")
+    public Result<PageResult> getPostsByUserId(
+            @PathVariable Long userId,
+            @Validated PostPageQueryDTO pageQueryDTO) {
+        log.info("根据用户ID查询帖子: userId={}, 参数={}", userId, pageQueryDTO);
+        PageResult pageResult = postPublicService.pageQueryPostsByUserId(userId, pageQueryDTO);
+        return Result.success(pageResult);
+    }
+
+    /**
+     * 统计用户发布的帖子数量
+     * @param userId 用户ID
+     * @return 帖子数量
+     */
+    @GetMapping("/user/count")
+    @Operation(summary = "统计用户发布的帖子数量")
+    public Result<Integer> countUserPosts(
+            @RequestParam @Parameter(description = "用户ID") Long userId) {
+        log.info("统计用户帖子数量: userId={}", userId);
+        int count = postPublicService.countUserPosts(userId);
+        return Result.success(count);
+    }
 }

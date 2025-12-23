@@ -117,14 +117,6 @@ public class PostPublishDTO {
         return true;
     }
 
-    /**
-     * 根据帖子类型判断是否为深度讨论区（有剧透）
-     * @return true-深度讨论区，false-无剧透区
-     */
-    @Schema(hidden = true)
-    public boolean isSpoilerArea() {
-        return postType == 2 || postType == 4; // 2-有剧透深度，4-二创有剧透
-    }
 
     /**
      * 根据帖子类型判断是否为二创帖子
