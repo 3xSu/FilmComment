@@ -12,6 +12,7 @@ import com.fc.utils.JwtUtil;
 import com.fc.vo.user.AvatarUploadVO;
 import com.fc.vo.user.UserLoginVO;
 import com.fc.vo.user.UserRegisterVO;
+import com.fc.vo.user.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -123,5 +124,21 @@ public class AccountController {
             log.error("用户头像上传失败", e);
             return Result.error("头像上传失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 获取用户基本信息
+     * @return 用户基本信息
+     */
+    @GetMapping("/user/info")
+    @Operation(summary = "获取用户基本信息")
+    public Result<UserVO> getUserInfo() {
+        log.info("获取用户基本信息");
+
+        // 从线程局部变量获取用户ID
+        Long userId = BaseContext.getCurrentId();
+
+        UserVO userVO = accountService.getUserInfo(userId);
+        return Result.success(userVO);
     }
 }

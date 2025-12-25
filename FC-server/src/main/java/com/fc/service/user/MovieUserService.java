@@ -2,6 +2,8 @@ package com.fc.service.user;
 
 import com.fc.dto.movie.user.RatingSubmitDTO;
 import com.fc.dto.movie.user.UserMovieRelationDTO;
+import com.fc.dto.movie.user.UserMovieRelationPageQueryDTO;
+import com.fc.result.PageResult;
 import com.fc.vo.movie.user.RatingVO;
 import com.fc.vo.movie.user.UserMovieRelationVO;
 import com.fc.vo.movie.user.UserRelationStatsVO;
@@ -57,4 +59,19 @@ public interface MovieUserService {
      */
     List<RatingVO> getUserRatings(Long userId);
 
+    /**
+     * 获取用户想看电影列表（分页）
+     * @param userId 用户ID
+     * @param pageQueryDTO 分页参数
+     * @return 分页结果
+     */
+    PageResult getWantToWatchMovies(Long userId, UserMovieRelationPageQueryDTO pageQueryDTO);
+
+    /**
+     * 获取用户已看电影列表（分页）
+     * @param userId 用户ID
+     * @param pageQueryDTO 分页参数
+     * @return 分页结果
+     */
+    PageResult getWatchedMovies(Long userId, UserMovieRelationPageQueryDTO pageQueryDTO);
 }

@@ -5,6 +5,7 @@ import com.fc.dto.user.UserRegisterDTO;
 import com.fc.entity.User;
 import com.fc.vo.user.AvatarUploadVO;
 import com.fc.vo.user.UserRegisterVO;
+import com.fc.vo.user.UserVO;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface AccountService {
@@ -30,4 +31,11 @@ public interface AccountService {
      * @return
      */
     AvatarUploadVO uploadAvatar(Long userId, MultipartFile avatarFile);
+
+    /**
+     * 获取用户基本信息
+     * @param userId 用户ID
+     * @return 用户基本信息
+     */
+    UserVO getUserInfo(Long userId);
 }

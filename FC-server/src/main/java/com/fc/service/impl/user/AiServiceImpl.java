@@ -121,11 +121,9 @@ public class AiServiceImpl implements AiService {
      */
     private Integer getCurrentPostCount(Long movieId, Integer postType) {
         try {
-            if (postType != null) {
-                return postUserMapper.countValidPostsByMovieIdAndPostType(movieId, postType);
-            } else {
-                return postUserMapper.countValidPostsByMovieId(movieId);
-            }
+
+            return postUserMapper.countValidPostsByMovieIdAndPostType(movieId, postType);
+
         } catch (Exception e) {
             log.error("获取电影帖子数量失败: movieId={}, postType={}", movieId, postType, e);
             return 0;

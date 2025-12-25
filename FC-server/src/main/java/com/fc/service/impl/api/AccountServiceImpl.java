@@ -13,6 +13,8 @@ import com.fc.service.api.AccountService;
 import com.fc.utils.AliOssUtil;
 import com.fc.vo.user.AvatarUploadVO;
 import com.fc.vo.user.UserRegisterVO;
+import com.fc.vo.user.UserVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class AccountServiceImpl implements AccountService {
 
     @Autowired
@@ -178,4 +181,29 @@ public class AccountServiceImpl implements AccountService {
         return "avatars/" + UUID.randomUUID().toString().replace("-", "") + extension;
     }
 
+    /**
+     * 获取用户基本信息
+     * @param userId 用户ID
+     * @return 用户基本信息
+     */
+    @Override
+    public UserVO getUserInfo(Long userId) {
+        log.info("获取用户基本信息: userId={}", userId);
+
+        // 查询用户信息
+        User user = accountMapper.getByUserId(userId);
+        if (user == null) {
+            throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
+        }
+
+        // 构建返回结果
+        return UserVO.builder()
+                .userId(user.getUserId())
+                .username(user.getUsername())
+                .avatarUrl(user.getAvatarUrl())
+                .role(user.getRole())
+                .createTime(user.getCreateTime())
+                .updateTime(user.getUpdateTime())
+                .build();
+    }
 }

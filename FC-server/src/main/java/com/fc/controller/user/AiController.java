@@ -34,8 +34,13 @@ public class AiController {
     @Operation(summary = "获取电影的AI总结信息")
     public Result<MovieCommentSummaryVO> getMovieSummary(
             @PathVariable Long movieId,
-            @RequestParam(value = "postType", required = false) Integer postType,
+            @RequestParam(value = "postType", required = true) Integer postType,
             @RequestParam(value = "forceRefresh", required = false, defaultValue = "false") Boolean forceRefresh) {
+
+        // 参数验证
+        if (postType < 1 || postType > 4) {
+            return Result.error("帖子类型参数错误，可选值：1-无剧透普通，2-有剧透深度，3-二创无剧透，4-二创有剧透");
+        }
 
         log.info("获取电影AI总结信息: movieId={}, postType={}, forceRefresh={}", movieId, postType, forceRefresh);
 

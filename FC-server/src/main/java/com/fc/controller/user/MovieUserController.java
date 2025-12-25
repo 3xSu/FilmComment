@@ -3,6 +3,8 @@ package com.fc.controller.user;
 import com.fc.context.BaseContext;
 import com.fc.dto.movie.user.RatingSubmitDTO;
 import com.fc.dto.movie.user.UserMovieRelationDTO;
+import com.fc.dto.movie.user.UserMovieRelationPageQueryDTO;
+import com.fc.result.PageResult;
 import com.fc.result.Result;
 import com.fc.service.user.MovieUserService;
 import com.fc.vo.movie.user.RatingVO;
@@ -136,4 +138,33 @@ public class MovieUserController {
         List<RatingVO> ratings = movieUserService.getUserRatings(userId);
         return Result.success(ratings);
     }
+
+    /**
+     * 获取用户想看电影列表（分页）
+     * @param pageQueryDTO 分页参数
+     * @return 分页结果
+     */
+    @GetMapping("/want-to-watch")
+    @Operation(summary = "获取用户想看电影列表（分页）")
+    public Result<PageResult> getWantToWatchMovies(@Validated UserMovieRelationPageQueryDTO pageQueryDTO) {
+        log.info("获取用户想看电影列表，游标: {}, 每页大小: {}", pageQueryDTO.getCursor(), pageQueryDTO.getSize());
+        Long userId = BaseContext.getCurrentId();
+        PageResult pageResult = movieUserService.getWantToWatchMovies(userId, pageQueryDTO);
+        return Result.success(pageResult);
+    }
+
+    /**
+     * 获取用户已看电影列表（分页）
+     * @param pageQueryDTO 分页参数
+     * @return 分页结果
+     */
+    @GetMapping("/watched")
+    @Operation(summary = "获取用户已看电影列表（分页）")
+    public Result<PageResult> getWatchedMovies(@Validated UserMovieRelationPageQueryDTO pageQueryDTO) {
+        log.info("获取用户已看电影列表，游标: {}, 每页大小: {}", pageQueryDTO.getCursor(), pageQueryDTO.getSize());
+        Long userId = BaseContext.getCurrentId();
+        PageResult pageResult = movieUserService.getWatchedMovies(userId, pageQueryDTO);
+        return Result.success(pageResult);
+    }
+
 }

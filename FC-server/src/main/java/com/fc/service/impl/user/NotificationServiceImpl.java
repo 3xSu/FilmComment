@@ -8,6 +8,7 @@ import com.fc.mapper.user.NotificationMapper;
 import com.fc.result.PageResult;
 import com.fc.service.user.NotificationService;
 import com.fc.handler.NotificationWebSocketHandler;
+import com.fc.vo.websocket.UserStatUpdateVO;
 import com.fc.vo.websocket.WebSocketMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -221,5 +222,35 @@ public class NotificationServiceImpl implements NotificationService {
                                                    Integer relatedType, LocalDateTime startTime) {
         Integer count = notificationMapper.countRecentDuplicate(userId, type, relatedId, relatedType, startTime);
         return count != null && count > 0;
+    }
+
+    /**
+     * 发送用户统计更新通知
+     */
+    @Override
+    public void sendUserStatUpdateNotification(Long userId, Integer watchedCount, Integer wishCount) {
+        try {
+            UserStatUpdateVO updateVO = UserStatUpdateVO.builder()
+                    .userId(userId)
+                    .watchedCount(watchedCount)
+                    .wishCount(wishCount)
+                    .timestamp(System.currentTimeMillis())
+                    .build();
+
+            // 构造WebSocket消息，使用新的类型标识
+            WebSocketMessage message = WebSocketMessage.builder()
+                    .type("USER_STAT_UPDATE")  // 区别于现有通知类型
+                    .data(updateVO)
+                    .timestamp(LocalDateTime.now())
+                    .messageId(UUID.randomUUID().toString())
+                    .build();
+
+            // 仅推送给当前用户（统计是私有数据）
+            webSocketHandler.sendMessageToUser(userId, message);
+            log.info("推送用户统计更新成功: userId={}, watched={}, wish={}",
+                    userId, watchedCount, wishCount);
+        } catch (Exception e) {
+            log.error("发送用户统计更新通知失败", e);
+        }
     }
 }
