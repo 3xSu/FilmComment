@@ -29,16 +29,14 @@ public interface PostPublicMapper {
                                               @Param("size") Integer size,
                                               @Param("movieId") Long movieId,
                                               @Param("postType") Integer postType,
-                                              @Param("contentForm") Integer contentForm,
-                                              @Param("spoilerType") Integer spoilerType);
+                                              @Param("contentForm") Integer contentForm);
 
     /**
      * 统计帖子数量（用于分页）
      */
     long countPosts(@Param("movieId") Long movieId,
                     @Param("postType") Integer postType,
-                    @Param("contentForm") Integer contentForm,
-                    @Param("spoilerType") Integer spoilerType);
+                    @Param("contentForm") Integer contentForm);
 
     /**
      * 根据用户ID查询帖子列表

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -19,4 +20,14 @@ public class UserMovieRelationVO {
     private Long movieId;
     private Integer relationType;
     private LocalDateTime updateTime;
+
+    // 电影信息
+    @Schema(description = "电影标题")
+    private String movieTitle;
+
+    @Schema(description = "海报URL")
+    private String posterUrl;
+
+    @Schema(description = "平均评分")
+    private BigDecimal avgRating;
 }

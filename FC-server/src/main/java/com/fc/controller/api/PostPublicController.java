@@ -30,10 +30,10 @@ public class PostPublicController {
     @GetMapping("/list")
     @Operation(summary = "分页查询帖子列表（滚动分页）")
     public Result<PageResult> pageQueryPosts(@Validated PostPageQueryDTO pageQueryDTO) {
-        log.info("分页查询帖子列表，游标: {}, 每页大小: {}, 电影ID: {}, 帖子类型: {}, 内容形式: {}, 剧透类型: {}",
+        log.info("分页查询帖子列表，游标: {}, 每页大小: {}, 电影ID: {}, 帖子类型: {}, 内容形式: {}",
                 pageQueryDTO.getCursor(), pageQueryDTO.getSize(),
                 pageQueryDTO.getMovieId(), pageQueryDTO.getPostType(),
-                pageQueryDTO.getContentForm(), pageQueryDTO.getSpoilerType());
+                pageQueryDTO.getContentForm());
 
         PageResult pageResult = postPublicService.pageQueryPosts(pageQueryDTO);
         return Result.success(pageResult);

@@ -24,6 +24,4 @@ public class PostPageQueryDTO {
     @Schema(description = "内容形式筛选：1-图文，2-视频", example = "1")
     private Integer contentForm;
 
-    @Schema(description = "剧透类型筛选：1-无剧透区，2-深度讨论区")
-    private Integer spoilerType;
 }

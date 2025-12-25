@@ -68,4 +68,13 @@ public interface NotificationService {
      * @param userId 用户ID
      */
     void markAllAsRead(Long userId);
+
+    /**
+     * 发送用户统计更新通知（已看/想看数量）
+     * @param userId 用户ID
+     * @param watchedCount 已看数量
+     * @param wishCount 想看数量
+     */
+    void sendUserStatUpdateNotification(Long userId, Integer watchedCount, Integer wishCount);
+
 }

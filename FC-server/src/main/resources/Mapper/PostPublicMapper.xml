@@ -43,18 +43,6 @@
         <if test="contentForm != null">
             AND p.content_form = #{contentForm}
         </if>
-        <if test="spoilerType != null">
-            <choose>
-                <!-- 无剧透区：post_type=1或3 -->
-                <when test="spoilerType == 1">
-                    AND p.post_type IN (1, 3)
-                </when>
-                <!-- 深度讨论区：post_type=2或4 -->
-                <when test="spoilerType == 2">
-                    AND p.post_type IN (2, 4)
-                </when>
-            </choose>
-        </if>
         ORDER BY p.create_time DESC
         <if test="size != null">
             LIMIT #{size}
@@ -74,16 +62,6 @@
         </if>
         <if test="contentForm != null">
             AND p.content_form = #{contentForm}
-        </if>
-        <if test="spoilerType != null">
-            <choose>
-                <when test="spoilerType == 1">
-                    AND p.post_type IN (1, 3)
-                </when>
-                <when test="spoilerType == 2">
-                    AND p.post_type IN (2, 4)
-                </when>
-            </choose>
         </if>
     </select>
 

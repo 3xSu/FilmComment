@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fc.mapper.user.MovieUserMapper">
+
+    <!-- 根据用户ID和关系类型查询电影列表 -->
+    <select id="listByUserIdAndType" resultType="com.fc.entity.UserMovieRelation">
+        SELECT umr.*, m.title, m.poster_url, m.avg_rating
+        FROM user_movie_relation umr
+        LEFT JOIN movie m ON umr.movie_id = m.movie_id
+        WHERE umr.user_id = #{userId}
+        <if test="relationType != null">
+            AND umr.relation_type = #{relationType}
+        </if>
+        ORDER BY umr.update_time DESC
+    </select>
+
+    <!-- 根据用户ID和关系类型分页查询电影列表（游标分页） -->
+    <select id="listByUserIdAndTypeWithCursor" resultType="com.fc.entity.UserMovieRelation">
+        SELECT
+        umr.*,
+        m.title,
+        m.poster_url,
+        m.avg_rating
+        FROM user_movie_relation umr
+        LEFT JOIN movie m ON umr.movie_id = m.movie_id
+        WHERE umr.user_id = #{userId}
+        AND umr.relation_type = #{relationType}
+        AND m.is_deleted = 0
+        <if test="cursor != null">
+            AND umr.update_time &lt; #{cursor}
+        </if>
+        ORDER BY umr.update_time DESC
+        LIMIT #{size}
+    </select>
+
+</mapper>

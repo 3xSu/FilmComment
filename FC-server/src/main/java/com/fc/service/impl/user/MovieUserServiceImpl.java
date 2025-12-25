@@ -3,6 +3,7 @@ package com.fc.service.impl.user;
 import com.fc.constant.MessageConstant;
 import com.fc.dto.movie.user.RatingSubmitDTO;
 import com.fc.dto.movie.user.UserMovieRelationDTO;
+import com.fc.dto.movie.user.UserMovieRelationPageQueryDTO;
 import com.fc.entity.Movie;
 import com.fc.entity.MovieRating;
 import com.fc.entity.UserMovieRelation;
@@ -12,7 +13,9 @@ import com.fc.exception.RatingUpdateFailedException;
 import com.fc.mapper.admin.MovieAdminMapper;
 import com.fc.mapper.api.MovieRatingMapper;
 import com.fc.mapper.user.MovieUserMapper;
+import com.fc.result.PageResult;
 import com.fc.service.user.MovieUserService;
+import com.fc.service.user.NotificationService;
 import com.fc.vo.movie.user.RatingVO;
 import com.fc.vo.movie.user.UserMovieRelationVO;
 import com.fc.vo.movie.user.UserRelationStatsVO;
@@ -39,6 +42,9 @@ public class MovieUserServiceImpl implements MovieUserService {
 
     @Autowired
     private MovieRatingMapper movieRatingMapper;
+
+    @Autowired
+    private NotificationService notificationService;
 
     // 最大重试次数
     private static final int MAX_RETRY_COUNT = 5;
@@ -89,6 +95,12 @@ public class MovieUserServiceImpl implements MovieUserService {
         // 获取更新后的关系
         UserMovieRelation updatedRelation = movieUserMapper
                 .getByUserIdAndMovieId(userId, movieId);
+        UserRelationStatsVO stats = getUserRelationStats(userId);
+        notificationService.sendUserStatUpdateNotification(
+                userId,
+                stats.getWatchedCount(),
+                stats.getWantToWatchCount()
+        );
 
         return buildUserMovieRelationVO(updatedRelation);
     }
@@ -102,6 +114,13 @@ public class MovieUserServiceImpl implements MovieUserService {
     @Transactional
     public void unmarkMovieRelation(Long userId, Long movieId) {
         movieUserMapper.delete(userId, movieId);
+        //取得现在统计信息并发送通知
+        UserRelationStatsVO stats = getUserRelationStats(userId);
+        notificationService.sendUserStatUpdateNotification(
+                userId,
+                stats.getWatchedCount(),
+                stats.getWantToWatchCount()
+        );
     }
 
     /**
@@ -325,17 +344,62 @@ public class MovieUserServiceImpl implements MovieUserService {
     }
 
     /**
-     * 构建RelationVO对象
-     * @param relation
-     * @return
+     * 获取用户想看电影列表（分页）
      */
-    private UserMovieRelationVO buildUserMovieRelationVO(UserMovieRelation relation) {
-        return UserMovieRelationVO.builder()
-                .userId(relation.getUserId())
-                .movieId(relation.getMovieId())
-                .relationType(relation.getRelationType())
-                .updateTime(relation.getUpdateTime())
-                .build();
+    @Override
+    public PageResult getWantToWatchMovies(Long userId, UserMovieRelationPageQueryDTO pageQueryDTO) {
+        // 设置关系类型为1（想看）
+        pageQueryDTO.setRelationType(1);
+
+        return getUserMovieRelationsWithPage(userId, pageQueryDTO);
+    }
+
+    /**
+     * 获取用户已看电影列表（分页）
+     */
+    @Override
+    public PageResult getWatchedMovies(Long userId, UserMovieRelationPageQueryDTO pageQueryDTO) {
+        // 设置关系类型为2（已看）
+        pageQueryDTO.setRelationType(2);
+
+        return getUserMovieRelationsWithPage(userId, pageQueryDTO);
+    }
+
+    /**
+     * 通用的用户电影关系分页查询
+     */
+    private PageResult getUserMovieRelationsWithPage(Long userId, UserMovieRelationPageQueryDTO pageQueryDTO) {
+        Integer size = pageQueryDTO.getSize() != null ? pageQueryDTO.getSize() : 20;
+        LocalDateTime cursor = pageQueryDTO.getCursor();
+        Integer relationType = pageQueryDTO.getRelationType();
+
+        // 查询当前页数据
+        List<UserMovieRelation> relations = movieUserMapper.listByUserIdAndTypeWithCursor(
+                userId, relationType, cursor, size);
+
+        // 转换为VO列表
+        List<UserMovieRelationVO> relationVOs = relations.stream()
+                .map(this::buildUserMovieRelationVO)
+                .collect(Collectors.toList());
+
+        // 构建分页结果
+        PageResult pageResult = new PageResult();
+        pageResult.setRecords(relationVOs);
+
+        // 设置是否有下一页和下一个游标
+        if (!relations.isEmpty()) {
+            // 获取最后一条记录的更新时间作为下一个游标
+            UserMovieRelation lastRelation = relations.get(relations.size() - 1);
+            pageResult.setNextCursor(lastRelation.getUpdateTime());
+            pageResult.setHasNext(relations.size() == size);
+        } else {
+            pageResult.setHasNext(false);
+        }
+
+        // 对于游标分页，不需要总记录数
+        pageResult.setTotal(-1);
+
+        return pageResult;
     }
 
     /**
@@ -387,4 +451,27 @@ public class MovieUserServiceImpl implements MovieUserService {
         return movies.stream()
                 .collect(Collectors.toMap(Movie::getMovieId, Function.identity()));
     }
+
+    /**
+     * 构建RelationVO对象
+     * @param relation
+     * @return
+     */
+    private UserMovieRelationVO buildUserMovieRelationVO(UserMovieRelation relation) {
+        UserMovieRelationVO.UserMovieRelationVOBuilder builder = UserMovieRelationVO.builder()
+                .userId(relation.getUserId())
+                .movieId(relation.getMovieId())
+                .relationType(relation.getRelationType())
+                .updateTime(relation.getUpdateTime());
+
+        // 添加电影信息
+        if (relation.getTitle() != null) {
+            builder.movieTitle(relation.getTitle())
+                    .posterUrl(relation.getPosterUrl())
+                    .avgRating(relation.getAvgRating());
+        }
+
+        return builder.build();
+    }
+
 }

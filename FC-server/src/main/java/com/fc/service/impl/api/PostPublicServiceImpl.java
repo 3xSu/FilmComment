@@ -5,6 +5,7 @@ import com.fc.context.BaseContext;
 import com.fc.dto.post.PostPageQueryDTO;
 import com.fc.entity.Post;
 import com.fc.entity.User;
+import com.fc.enums.PostTypeEnum;
 import com.fc.exception.PostNotFoundException;
 import com.fc.exception.UserNotFoundException;
 import com.fc.mapper.api.AccountMapper;
@@ -55,21 +56,15 @@ public class PostPublicServiceImpl implements PostPublicService {
         Long movieId = pageQueryDTO.getMovieId();
         Integer postType = pageQueryDTO.getPostType();
         Integer contentForm = pageQueryDTO.getContentForm();
-        Integer spoilerType = pageQueryDTO.getSpoilerType();
 
         // 如果是查询深度讨论区帖子，检查用户权限
-        if (spoilerType != null && spoilerType == 2) {
+        if (PostTypeEnum.isSpoiler(postType)) {
             checkSpoilerPermission(movieId);
-        }
-
-        // 验证剧透类型参数
-        if (spoilerType != null && (spoilerType != 1 && spoilerType != 2)) {
-            throw new IllegalArgumentException("剧透类型参数错误，应为1(无剧透区)或2(深度讨论区)");
         }
 
         // 查询帖子列表
         List<PostSearchVO> records = postPublicMapper.pageQueryPostsByCursor(
-                pageQueryDTO.getCursor(), size, movieId, postType, contentForm, spoilerType);
+                pageQueryDTO.getCursor(), size, movieId, postType, contentForm);
 
         // 为每个帖子设置标签信息
         records = records.stream()
@@ -91,7 +86,7 @@ public class PostPublicServiceImpl implements PostPublicService {
 
         // 对于第一页查询，返回总记录数；后续页不返回
         if (pageQueryDTO.getCursor() == null) {
-            long total = postPublicMapper.countPosts(movieId, postType, contentForm, spoilerType);
+            long total = postPublicMapper.countPosts(movieId, postType, contentForm);
             pageResult.setTotal(total);
         } else {
             pageResult.setTotal(-1);
