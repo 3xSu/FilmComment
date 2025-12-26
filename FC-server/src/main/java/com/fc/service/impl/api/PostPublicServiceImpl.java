@@ -227,6 +227,16 @@ public class PostPublicServiceImpl implements PostPublicService {
     }
 
     /**
+     * 根据电影ID查询所有帖子总数量
+     * @param movieId
+     * @return
+     */
+    @Override
+    public Integer countPostsByMovieId(Long movieId){
+        return postUserMapper.countValidPostsByMovieId(movieId);
+    }
+
+    /**
      * 构建完整的PostVO对象
      * @param post 帖子实体
      * @return PostVO
