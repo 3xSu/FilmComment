@@ -34,4 +34,11 @@ public interface PostPublicService {
      * @return 帖子数量
      */
     int countUserPosts(Long userId);
+
+    /**
+     * 根据电影ID查询所有帖子总数量
+     * @param movieId
+     * @return
+     */
+    Integer countPostsByMovieId(Long movieId);
 }

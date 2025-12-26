@@ -82,4 +82,17 @@ public class PostPublicController {
         int count = postPublicService.countUserPosts(userId);
         return Result.success(count);
     }
+
+    /**
+     * 根据电影ID查询所有帖子总数量
+     * @param movieId
+     * @return
+     */
+    @GetMapping("/count/movie/{movieId}")
+    @Operation(summary = "根据电影ID查询帖子数量")
+    public Result<Integer> getPostCountByMovieId(@PathVariable Long movieId) {
+        log.info("根据电影ID查询帖子数量: movieId={}", movieId);
+        Integer count = postPublicService.countPostsByMovieId(movieId);
+        return Result.success(count);
+    }
 }
