@@ -75,6 +75,22 @@ public class CommentPublicServiceImpl implements CommentPublicService {
     }
 
     /**
+     * 根据帖子ID统计评论数量
+     * @param postId 帖子
+     * @param includeReplies 是否包含回复（true-包含所有评论和回复，false-只包含顶级评论）
+     * @return
+     */
+    public Integer countCommentsByPostId(Long postId, boolean includeReplies) {
+        if (includeReplies) {
+            // 统计所有评论（包括回复）
+            return commentPublicMapper.countCommentsByPostId(postId);
+        } else {
+            // 只统计顶级评论
+            return commentPublicMapper.countTopCommentsByPostId(postId);
+        }
+    }
+
+    /**
      * 构建CommentVO对象
      * @param comment 评论实体
      * @return CommentVO

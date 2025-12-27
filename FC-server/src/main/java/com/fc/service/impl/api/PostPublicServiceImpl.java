@@ -6,6 +6,7 @@ import com.fc.dto.post.PostPageQueryDTO;
 import com.fc.entity.Post;
 import com.fc.entity.User;
 import com.fc.enums.PostTypeEnum;
+import com.fc.exception.AccessDeniedException;
 import com.fc.exception.PostNotFoundException;
 import com.fc.exception.UserNotFoundException;
 import com.fc.mapper.api.AccountMapper;
@@ -19,6 +20,7 @@ import com.fc.vo.post.PostSearchVO;
 import com.fc.vo.post.PostVO;
 import com.fc.vo.tag.TagVO;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -103,7 +105,7 @@ public class PostPublicServiceImpl implements PostPublicService {
         try {
             Long userId = BaseContext.getCurrentId();
             if (userId == null) {
-                throw new RuntimeException("请登录后访问深度讨论区");
+                throw new AccessDeniedException("请登录后访问深度讨论区");
             }
 
             // 检查用户角色（管理员不受限制）
@@ -116,12 +118,12 @@ public class PostPublicServiceImpl implements PostPublicService {
             Integer relationType = movieUserService.checkUserMovieRelation(userId, movieId);
 
             if (relationType == null || relationType != 2) {
-                throw new RuntimeException(
+                throw new AccessDeniedException(
                         "需要将这部电影标记为\"已看过\"才能访问深度讨论区");
             }
         } catch (Exception e) {
             log.error("检查深度讨论区权限时发生错误", e);
-            throw new RuntimeException("权限检查失败，请稍后重试");
+            throw new AccessDeniedException("权限检查失败，请稍后重试");
         }
     }
 

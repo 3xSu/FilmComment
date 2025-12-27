@@ -10,10 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -51,5 +48,21 @@ public class CommentPublicController {
         log.info("获取评论回复列表: commentId={}", commentId);
         List<CommentVO> replies = commentPublicService.getCommentReplies(commentId);
         return Result.success(replies);
+    }
+
+    /**
+     * 根据帖子ID统计评论数量
+     * @param postId 帖子ID
+     * @param includeReplies 是否包含回复
+     * @return 评论数量
+     */
+    @GetMapping("/count/{postId}")
+    @Operation(summary = "根据帖子ID统计评论数量")
+    public Result<Integer> countCommentsByPostId(
+            @PathVariable Long postId,
+            @RequestParam(value = "includeReplies", defaultValue = "false") Boolean includeReplies) {
+        log.info("统计帖子评论数量: postId={}, includeReplies={}", postId, includeReplies);
+        Integer count = commentPublicService.countCommentsByPostId(postId, includeReplies);
+        return Result.success(count);
     }
 }

@@ -356,3 +356,6 @@ USE FilmComment_DB;
 ALTER TABLE ai_record 
 ADD COLUMN update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
 CREATE INDEX idx_ai_record_update_time ON ai_record(update_time DESC);
+
+USE FilmComment_DB;
+ALTER TABLE post ADD COLUMN comment_count INT NOT NULL DEFAULT 0 COMMENT '帖子评论数';
