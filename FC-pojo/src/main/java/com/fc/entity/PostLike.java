@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 public class PostLike implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private Long id;            // 主键ID
+    private Long likeId;            // 主键ID
     private Long userId;        // 用户ID
     private Long postId;       // 帖子ID
     private LocalDateTime createTime;  // 创建时间

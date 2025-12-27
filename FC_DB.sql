@@ -359,3 +359,6 @@ CREATE INDEX idx_ai_record_update_time ON ai_record(update_time DESC);
 
 USE FilmComment_DB;
 ALTER TABLE post ADD COLUMN comment_count INT NOT NULL DEFAULT 0 COMMENT '帖子评论数';
+
+USE FilmComment_DB;
+ALTER TABLE post_like CHANGE id like_id BIGINT AUTO_INCREMENT;

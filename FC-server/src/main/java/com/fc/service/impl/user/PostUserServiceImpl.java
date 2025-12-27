@@ -316,7 +316,7 @@ public class PostUserServiceImpl implements PostUserService {
         postStatService.updateLikeCount(postId, latestLikeCount);
 
         // 发送点赞通知给帖子作者（新增功能）
-        sendLikeNotification(post.getUserId(), userId, postId, postLike.getId());
+        sendLikeNotification(post.getUserId(), userId, postId, postLike.getLikeId());
 
         log.info("帖子点赞成功: userId={}, postId={}", userId, postId);
     }
