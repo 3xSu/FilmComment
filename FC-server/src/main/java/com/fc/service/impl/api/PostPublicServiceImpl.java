@@ -13,6 +13,7 @@ import com.fc.mapper.api.AccountMapper;
 import com.fc.mapper.api.PostPublicMapper;
 import com.fc.mapper.user.PostUserMapper;
 import com.fc.result.PageResult;
+import com.fc.service.api.CommentPublicService;
 import com.fc.service.api.PostPublicService;
 import com.fc.service.user.MovieUserService;
 import com.fc.service.user.PostStatService;
@@ -24,6 +25,7 @@ import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,6 +48,9 @@ public class PostPublicServiceImpl implements PostPublicService {
     @Autowired
     private PostStatService postStatService;
 
+    @Autowired
+    private CommentPublicService commentPublicService;
+
     /**
      * 分页查询帖子列表（滚动分页）
      * @param pageQueryDTO 分页参数
@@ -61,7 +66,10 @@ public class PostPublicServiceImpl implements PostPublicService {
 
         // 如果是查询深度讨论区帖子，检查用户权限
         if (PostTypeEnum.isSpoiler(postType)) {
-            checkSpoilerPermission(movieId);
+            if (!checkSpoilerPermission(movieId)) {
+                // 权限不足时返回空结果
+                return buildEmptyPageResult();
+            }
         }
 
         // 查询帖子列表
@@ -101,26 +109,28 @@ public class PostPublicServiceImpl implements PostPublicService {
      * 检查深度讨论区权限（针对特定电影）
      * @param movieId 电影ID
      */
-    private void checkSpoilerPermission(Long movieId) {
+    private boolean checkSpoilerPermission(Long movieId) {
         try {
             Long userId = BaseContext.getCurrentId();
             if (userId == null) {
-                throw new AccessDeniedException("请登录后访问深度讨论区");
+                log.warn("用户未登录，无法访问深度讨论区");
+                return false;
             }
 
             // 检查用户角色（管理员不受限制）
             User user = accountMapper.getByUserId(userId);
             if (user != null && user.getRole() == 2) {
-                return;
+                return true;
             }
 
             // 检查用户是否标记这部电影为"已看过"
             Integer relationType = movieUserService.checkUserMovieRelation(userId, movieId);
 
             if (relationType == null || relationType != 2) {
-                throw new AccessDeniedException(
-                        "需要将这部电影标记为\"已看过\"才能访问深度讨论区");
+                log.warn("用户{}没有权限访问电影{}的深度讨论区", userId, movieId);
+                return false;
             }
+            return true;
         } catch (Exception e) {
             log.error("检查深度讨论区权限时发生错误", e);
             throw new AccessDeniedException("权限检查失败，请稍后重试");
@@ -288,6 +298,19 @@ public class PostPublicServiceImpl implements PostPublicService {
             log.error("获取帖子图片失败: postId={}", post.getPostId(), e);
         }
 
+        // 查询评论数量
+        Integer commentCount = 0;
+        try {
+            // 获取帖子的评论数量
+            commentCount = commentPublicService.countCommentsByPostId(post.getPostId(), true);
+            if (commentCount == null) {
+                commentCount = 0;
+            }
+        } catch (Exception e) {
+            log.error("获取帖子评论数量失败: postId={}", post.getPostId(), e);
+            commentCount = 0;
+        }
+
         // 构建完整的PostVO
         return PostVO.builder()
                 .postId(post.getPostId())
@@ -304,7 +327,7 @@ public class PostPublicServiceImpl implements PostPublicService {
                 .viewCount(post.getViewCount() != null ? post.getViewCount() : 0)
                 .likeCount(post.getLikeCount() != null ? post.getLikeCount() : 0)
                 .collectCount(post.getCollectCount() != null ? post.getCollectCount() : 0)
-                .commentCount(0) // 需要后续实现评论计数
+                .commentCount(commentCount)
                 .createTime(post.getCreateTime())
                 .imageUrls(imageUrls)
                 .tags(tags)
@@ -313,4 +336,15 @@ public class PostPublicServiceImpl implements PostPublicService {
                 .build();
     }
 
+    /**
+     * 构建空的分页结果
+     * @return
+     */
+    private PageResult buildEmptyPageResult() {
+        PageResult pageResult = new PageResult();
+        pageResult.setRecords(Collections.emptyList());
+        pageResult.setHasNext(false);
+        pageResult.setTotal(0);
+        return pageResult;
+    }
 }
