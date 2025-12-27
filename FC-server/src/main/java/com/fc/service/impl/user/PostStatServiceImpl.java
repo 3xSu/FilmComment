@@ -32,6 +32,10 @@ public class PostStatServiceImpl implements PostStatService {
     private static final String POST_STAT_KEY_PREFIX = "post:stat:";
     private static final long CACHE_EXPIRE_HOURS = 24;
 
+    /**
+     * 增加帖子浏览量
+     * @param postId
+     */
     @Override
     @Transactional
     public void incrementViewCount(Long postId) {
@@ -51,6 +55,11 @@ public class PostStatServiceImpl implements PostStatService {
         }
     }
 
+    /**
+     * 更新帖子点赞数
+     * @param postId 帖子
+     * @param likeCount 点赞数
+     */
     @Override
     @Transactional
     public void updateLikeCount(Long postId, Integer likeCount) {
@@ -70,6 +79,11 @@ public class PostStatServiceImpl implements PostStatService {
         }
     }
 
+    /**
+     * 更新帖子评论数
+     * @param postId 帖子
+     * @param commentCount 评论数
+     */
     @Override
     @Transactional
     public void updateCommentCount(Long postId, Integer commentCount) {
@@ -89,6 +103,11 @@ public class PostStatServiceImpl implements PostStatService {
         }
     }
 
+    /**
+     * 获取帖子统计数据
+     * @param postId 帖子
+     * @return
+     */
     @Override
     public PostStatVO getPostStats(Long postId) {
         try {
@@ -125,6 +144,10 @@ public class PostStatServiceImpl implements PostStatService {
         }
     }
 
+    /**
+     * 广播帖子统计更新
+     * @param postId 帖子
+     */
     @Override
     public void broadcastPostStatUpdate(Long postId) {
         try {
@@ -156,6 +179,8 @@ public class PostStatServiceImpl implements PostStatService {
 
     /**
      * 更新缓存中的特定字段
+     * @param postId 帖子
+     * @param field 更新的字段名
      */
     private void updateCache(Long postId, String field) {
         try {

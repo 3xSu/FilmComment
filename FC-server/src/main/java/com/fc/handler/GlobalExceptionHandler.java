@@ -1,6 +1,7 @@
 package com.fc.handler;
 
 import com.fc.constant.MessageConstant;
+import com.fc.exception.AccessDeniedException;
 import com.fc.exception.BaseException;
 import com.fc.result.Result;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,16 @@ public class GlobalExceptionHandler {
         log.error("异常信息：{}", ex.getMessage());
         return Result.error(ex.getMessage());
     }
+
+    /**
+     * 捕获权限异常 - 使用WARN级别
+     */
+    @ExceptionHandler
+    public Result exceptionHandler(AccessDeniedException ex){
+        log.warn("权限异常：{}", ex.getMessage());
+        return Result.error(ex.getMessage());
+    }
+
 
     @ExceptionHandler
     public Result exceptionHandler(SQLIntegrityConstraintViolationException ex){

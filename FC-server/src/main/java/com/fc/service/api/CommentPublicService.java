@@ -21,4 +21,12 @@ public interface CommentPublicService {
      * @return
      */
     List<CommentVO> getCommentReplies(Long commentId);
+
+    /**
+     * 根据帖子ID统计评论数量
+     * @param postId 帖子ID
+     * @param includeReplies 是否包含回复（true-包含所有评论和回复，false-只包含顶级评论）
+     * @return 评论数量
+     */
+    Integer countCommentsByPostId(Long postId, boolean includeReplies);
 }
