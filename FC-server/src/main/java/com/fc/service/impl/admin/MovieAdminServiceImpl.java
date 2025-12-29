@@ -236,7 +236,7 @@ public class MovieAdminServiceImpl implements MovieAdminService {
         String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
 
         // 只允许特定的扩展名
-        List<String> allowedExtensions = Arrays.asList(".jpg", ".jpeg", ".png", ".gif");
+        List<String> allowedExtensions = Arrays.asList(".jpg", ".jpeg", ".png", ".gif", ".webp");
         if (!allowedExtensions.contains(extension.toLowerCase())) {
             return ".jpg"; // 强制使用安全扩展名
         }

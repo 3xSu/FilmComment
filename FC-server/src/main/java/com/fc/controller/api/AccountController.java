@@ -104,7 +104,7 @@ public class AccountController {
      * @param avatarFile
      * @return
      */
-    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/user/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "用户头像上传")
     public Result<AvatarUploadVO> uploadAvatar(
             @Parameter(description = "头像文件", required = true,
