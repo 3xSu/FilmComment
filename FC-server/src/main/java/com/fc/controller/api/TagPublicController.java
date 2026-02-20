@@ -90,6 +90,9 @@ public class TagPublicController {
         log.info("获取标签详情: tagId={}", tagId);
 
         CreativeTag tag = tagPublicService.getTagById(tagId);
+        if (tag == null) {
+            return Result.error("标签不存在");
+        }
         return Result.success(tag);
     }
 

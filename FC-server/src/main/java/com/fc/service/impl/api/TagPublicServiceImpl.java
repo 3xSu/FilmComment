@@ -4,8 +4,10 @@ import com.fc.dto.tag.TagPageQueryDTO;
 import com.fc.entity.CreativeTag;
 import com.fc.mapper.api.TagPublicMapper;
 import com.fc.result.PageResult;
+import com.fc.service.api.HotService;
 import com.fc.service.api.TagPublicService;
 import com.fc.vo.tag.TagVO;
+import com.google.common.hash.BloomFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,12 @@ public class TagPublicServiceImpl implements TagPublicService {
 
     @Autowired
     private TagPublicMapper tagPublicMapper;
+
+    @Autowired
+    private HotService hotService;
+
+    @Autowired
+    private BloomFilter<String> tagIdBloomFilter;
 
     /**
      * 分页查询标签（适合无限滚动流）
@@ -158,6 +166,8 @@ public class TagPublicServiceImpl implements TagPublicService {
 
     /**
      * 创建标签（如果不存在）
+     * @param tagName
+     * @return
      */
     @Override
     public CreativeTag createTagIfNotExists(String tagName) {
@@ -186,6 +196,15 @@ public class TagPublicServiceImpl implements TagPublicService {
         tagPublicMapper.insert(newTag);
         log.info("标签创建成功: tagId={}, tagName={}", newTag.getTagId(), newTag.getTagName());
 
+        // 新增：将新标签ID添加到布隆过滤器中
+        try {
+            hotService.addTagIdToBloomFilter(newTag.getTagId());
+            log.debug("已更新布隆过滤器，添加标签ID: {}", newTag.getTagId());
+        } catch (Exception e) {
+            // 布隆过滤器更新失败不影响主流程，记录日志即可
+            log.warn("更新布隆过滤器失败，标签ID: {}", newTag.getTagId(), e);
+        }
+
         return newTag;
     }
 
@@ -200,10 +219,21 @@ public class TagPublicServiceImpl implements TagPublicService {
             throw new IllegalArgumentException("标签ID不能为空");
         }
 
+        // 布隆过滤器校验
+        String tagIdStr = String.valueOf(tagId);
+        if (!tagIdBloomFilter.mightContain(tagIdStr)) {
+            // 标签ID肯定不存在于系统中，直接返回null，避免数据库查询
+            log.info("布隆过滤器拦截不存在的标签ID: {}", tagId);
+            // 这里应该返回null，而不是抛出异常，由上层Controller处理
+            return null;
+        }
+
         CreativeTag tag = tagPublicMapper.getByTagId(tagId);
         if (tag == null) {
             log.warn("标签不存在: tagId={}", tagId);
-            throw new RuntimeException("标签不存在");
+            // 注意：这里不应该抛出RuntimeException，应该返回null让Controller处理
+            // 改为返回null，Controller会根据返回值返回404或自定义错误
+            return null;
         }
 
         return tag;

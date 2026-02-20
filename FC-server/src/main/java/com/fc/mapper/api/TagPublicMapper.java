@@ -76,4 +76,12 @@ public interface TagPublicMapper {
      */
     @Select("SELECT COUNT(DISTINCT post_id) FROM post_tag WHERE tag_id = #{tagId}")
     Integer countTagRelatedPosts(@Param("tagId") Long tagId);
+
+    /**
+     * 查询所有标签ID
+     * 用于初始化布隆过滤器
+     * @return 所有标签ID列表
+     */
+    @Select("SELECT tag_id FROM creative_tag")
+    List<Long> selectAllTagIds();
 }
