@@ -1,6 +1,8 @@
 package com.fc.service.impl.api;
 
+import com.fc.mapper.api.TagPublicMapper;
 import com.fc.service.api.HotService;
+import com.google.common.hash.BloomFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -18,7 +20,10 @@ public class HotServiceImpl implements HotService {
     private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
-    private com.fc.mapper.api.TagPublicMapper tagPublicMapper;
+    private TagPublicMapper tagPublicMapper;
+
+    @Autowired
+    private BloomFilter<String> tagIdBloomFilter;
 
     // Redis key 前缀
     private static final String TAG_HOT_KEY_PREFIX = "hot:tag:";
@@ -32,6 +37,21 @@ public class HotServiceImpl implements HotService {
      */
     @Override
     public Map<String, Object> getTagHotInfo(Long tagId) {
+
+        if (tagId == null) {
+            log.warn("标签ID为空，直接返回空结果");
+            return Collections.emptyMap();
+        }
+
+        String tagIdStr = String.valueOf(tagId);
+
+        // 布隆过滤器校验
+        if (!tagIdBloomFilter.mightContain(tagIdStr)) {
+            // 标签ID肯定不存在于系统中，直接返回空结果
+            log.info("布隆过滤器拦截不存在的标签ID: {}", tagId);
+            return Collections.emptyMap();
+        }
+
         String cacheKey = TAG_HOT_KEY_PREFIX + tagId;
 
         // 1. 尝试从缓存获取
@@ -61,8 +81,26 @@ public class HotServiceImpl implements HotService {
     public Map<Long, Map<String, Object>> batchGetTagHotInfo(List<Long> tagIds) {
         Map<Long, Map<String, Object>> result = new HashMap<>();
 
-        // 批量构建缓存key
-        List<String> cacheKeys = tagIds.stream()
+        if (tagIds == null || tagIds.isEmpty()) {
+            return result;
+        }
+
+        // 使用布隆过滤器预过滤不存在的标签ID
+        List<Long> filteredTagIds = new ArrayList<>();
+        for (Long tagId : tagIds) {
+            if (tagId != null && tagIdBloomFilter.mightContain(String.valueOf(tagId))) {
+                filteredTagIds.add(tagId);
+            } else if (tagId != null) {
+                log.debug("布隆过滤器过滤掉标签ID: {}", tagId);
+            }
+        }
+
+        if (filteredTagIds.isEmpty()) {
+            return result;
+        }
+
+        // 批量构建缓存key（使用过滤后的tagIds）
+        List<String> cacheKeys = filteredTagIds.stream()
                 .map(tagId -> TAG_HOT_KEY_PREFIX + tagId)
                 .collect(Collectors.toList());
 
@@ -72,8 +110,8 @@ public class HotServiceImpl implements HotService {
         // 处理缓存命中和未命中的标签
         List<Long> missTagIds = new ArrayList<>();
 
-        for (int i = 0; i < tagIds.size(); i++) {
-            Long tagId = tagIds.get(i);
+        for (int i = 0; i < filteredTagIds.size(); i++) {
+            Long tagId = filteredTagIds.get(i);
             Object cached = cachedList.get(i);
 
             if (cached instanceof Map) {
@@ -266,5 +304,17 @@ public class HotServiceImpl implements HotService {
         // 近期使用 - 时效性权重1.5（更高的权重）
         // 关联帖子数 - 分布广度权重0.8
         return totalUsage * 0.5 + recentUsage * 1.5 + relatedPostCount * 0.8;
+    }
+
+    /**
+     * 向布隆过滤器添加标签ID
+     * 用于标签创建时同步更新布隆过滤器
+     * @param tagId 标签ID
+     */
+    public void addTagIdToBloomFilter(Long tagId){
+        if (tagId != null) {
+            tagIdBloomFilter.put(String.valueOf(tagId));
+            log.debug("向布隆过滤器添加标签ID: {}", tagId);
+        }
     }
 }

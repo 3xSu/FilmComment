@@ -24,4 +24,11 @@ public interface HotService {
      * @param tagId
      */
     void evictTagHotCache(String tagId);
+
+    /**
+     * 向布隆过滤器添加标签ID
+     * 用于标签创建时同步更新布隆过滤器
+     * @param tagId 标签ID
+     */
+    void addTagIdToBloomFilter(Long tagId);
 }
