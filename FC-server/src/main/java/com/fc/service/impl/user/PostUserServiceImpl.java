@@ -20,6 +20,8 @@ import com.fc.utils.FileSecurityValidator;
 import com.fc.vo.post.*;
 import com.fc.vo.tag.TagVO;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,6 +63,9 @@ public class PostUserServiceImpl implements PostUserService {
 
     @Autowired
     private PostStatService postStatService;
+
+    @Autowired
+    private RedissonClient redissonClient;
 
     /**
      * 发布帖子
@@ -285,13 +291,49 @@ public class PostUserServiceImpl implements PostUserService {
     public void likePost(Long userId, Long postId) {
         log.info("用户点赞帖子: userId={}, postId={}", userId, postId);
 
-        // 检查帖子是否存在
+        // 先检查帖子是否存在（不需要加锁的读操作）
         Post post = postUserMapper.getByPostId(postId);
         if (post == null || post.getIsDeleted() == 1) {
             throw new PostNotFoundException("帖子不存在或已被删除");
         }
 
-        // 检查是否已经点赞
+        // 创建分布式锁，确保对同一帖子的点赞操作串行化
+        String lockKey = String.format("lock:post:like:%d", postId);
+        RLock lock = redissonClient.getLock(lockKey);
+
+        boolean isLocked = false;
+        try {
+            // 尝试获取锁，最多等待1秒，锁持有时间10秒
+            isLocked = lock.tryLock(1, 10, TimeUnit.SECONDS);
+            if (!isLocked) {
+                log.warn("获取分布式锁失败，帖子{}的点赞操作可能正在被其他请求处理，当前用户{}", postId, userId);
+                // 这里可以根据业务需求选择：重试、抛异常或直接返回
+                throw new RuntimeException("操作过于频繁，请稍后重试");
+            }
+
+            log.info("成功获取分布式锁，开始处理帖子{}的点赞操作", postId);
+            doLikePost(userId, postId, post);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("点赞操作获取分布式锁时被中断，userId={}, postId={}", userId, postId, e);
+            throw new RuntimeException("点赞操作被中断");
+        } finally {
+            if (isLocked && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+                log.info("已释放分布式锁，帖子{}的点赞操作处理完成", postId);
+            }
+        }
+    }
+
+    /**
+     * 实际的点赞逻辑（被锁保护的部分）
+     * @param userId
+     * @param postId
+     * @param post
+     */
+    private void doLikePost(Long userId, Long postId, Post post) {
+        // 再次检查是否已经点赞（在锁内检查，确保原子性）
         PostLike existingLike = postUserMapper.getPostLikeByUserIdAndPostId(userId, postId);
         if (existingLike != null) {
             log.info("用户已点赞过该帖子: userId={}, postId={}", userId, postId);
@@ -315,14 +357,14 @@ public class PostUserServiceImpl implements PostUserService {
         // 实时更新点赞数
         postStatService.updateLikeCount(postId, latestLikeCount);
 
-        // 发送点赞通知给帖子作者（新增功能）
+        // 发送点赞通知给帖子作者
         sendLikeNotification(post.getUserId(), userId, postId, postLike.getLikeId());
 
         log.info("帖子点赞成功: userId={}, postId={}", userId, postId);
     }
 
     /**
-     * 发送点赞通知给帖子作者（新增方法）
+     * 发送点赞通知给帖子作者
      */
     private void sendLikeNotification(Long targetUserId, Long likerId, Long postId, Long likeId) {
         try {

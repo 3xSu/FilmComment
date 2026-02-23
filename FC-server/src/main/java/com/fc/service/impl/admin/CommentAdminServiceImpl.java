@@ -11,6 +11,8 @@ import com.fc.service.admin.CommentAdminService;
 import com.fc.vo.comment.CommentAdminVO;
 
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +33,9 @@ public class CommentAdminServiceImpl implements CommentAdminService {
 
     @Autowired
     private AccountMapper accountMapper;
+
+    @Autowired
+    private RedissonClient redissonClient;
 
     @Value("${comment.auto-cleanup.days:7}")
     private Integer autoCleanupDays;
@@ -122,13 +128,46 @@ public class CommentAdminServiceImpl implements CommentAdminService {
     @Transactional
     public int autoCleanupExpiredComments() {
         if (!autoCleanupEnabled) {
+            log.info("评论自动清理功能已禁用");
             return 0;
         }
 
+        String lockKey = "lock:job:comment:cleanup";
+        RLock lock = redissonClient.getLock(lockKey);
+
+        boolean isLocked = false;
+        try {
+            // 尝试获取锁，不等待，锁持有时间30分钟（与定时任务一致）
+            isLocked = lock.tryLock(0, 30, TimeUnit.MINUTES);
+            if (!isLocked) {
+                log.info("未获取到分布式锁，评论清理任务可能正在由其他实例或手动触发执行");
+                return 0; // 返回0表示未执行清理
+            }
+
+            log.info("成功获取分布式锁，开始执行评论自动清理任务...");
+            return doAutoCleanupExpiredComments();
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("评论清理任务获取分布式锁时被中断", e);
+            throw new RuntimeException("清理任务被中断", e);
+        } finally {
+            if (isLocked && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+                log.info("评论清理任务分布式锁已释放");
+            }
+        }
+    }
+
+    /**
+     * 实际执行清理逻辑的私有方法
+     */
+    private int doAutoCleanupExpiredComments() {
         LocalDateTime thresholdTime = LocalDateTime.now().minusDays(autoCleanupDays);
         List<Comment> commentsToCleanup = commentAdminMapper.getCommentsToCleanup(thresholdTime);
 
         if (commentsToCleanup.isEmpty()) {
+            log.info("没有找到需要清理的过期评论");
             return 0;
         }
 
@@ -136,15 +175,23 @@ public class CommentAdminServiceImpl implements CommentAdminService {
                 .map(Comment::getCommentId)
                 .collect(Collectors.toList());
 
-        // 1. 先批量删除评论图片
-        commentAdminMapper.batchDeleteCommentImages(commentIds);
-        log.info("批量删除评论图片: 数量={}", commentIds.size());
+        log.info("开始自动清理过期评论: 数量={}", commentIds.size());
 
-        // 2. 再批量删除评论
-        commentAdminMapper.batchDeleteComments(commentIds);
-        log.info("批量物理删除评论: 数量={}", commentIds.size());
+        try {
+            // 1. 先批量删除评论图片
+            commentAdminMapper.batchDeleteCommentImages(commentIds);
+            log.info("批量删除评论图片: 数量={}", commentIds.size());
 
-        return commentIds.size();
+            // 2. 再批量删除评论
+            commentAdminMapper.batchDeleteComments(commentIds);
+            log.info("批量物理删除评论: 数量={}", commentIds.size());
+
+            return commentIds.size();
+
+        } catch (Exception e) {
+            log.error("自动清理评论任务执行失败", e);
+            throw new RuntimeException("自动清理评论任务执行失败: " + e.getMessage());
+        }
     }
 
     /**

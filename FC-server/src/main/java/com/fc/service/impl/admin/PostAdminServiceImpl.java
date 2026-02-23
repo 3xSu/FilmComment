@@ -12,6 +12,8 @@ import com.fc.service.admin.PostAdminService;
 import com.fc.vo.post.PostAdminVO;
 
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +37,9 @@ public class PostAdminServiceImpl implements PostAdminService {
 
     @Autowired
     private AccountMapper accountMapper;
+
+    @Autowired
+    private RedissonClient redissonClient;
 
     @Value("${post.auto-cleanup.days:30}")
     private Integer autoCleanupDays;
@@ -166,13 +172,46 @@ public class PostAdminServiceImpl implements PostAdminService {
     @Transactional
     public int autoCleanupExpiredPosts() {
         if (!autoCleanupEnabled) {
+            log.info("帖子自动清理功能已禁用");
             return 0;
         }
 
+        String lockKey = "lock:job:post:cleanup";
+        RLock lock = redissonClient.getLock(lockKey);
+
+        boolean isLocked = false;
+        try {
+            // 尝试获取锁，不等待，锁持有时间30分钟（与定时任务一致）
+            isLocked = lock.tryLock(0, 30, TimeUnit.MINUTES);
+            if (!isLocked) {
+                log.info("未获取到分布式锁，帖子清理任务可能正在由其他实例或手动触发执行");
+                return 0; // 返回0表示未执行清理
+            }
+
+            log.info("成功获取分布式锁，开始执行帖子自动清理任务...");
+            return doAutoCleanupExpiredPosts();
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("帖子清理任务获取分布式锁时被中断", e);
+            throw new RuntimeException("清理任务被中断", e);
+        } finally {
+            if (isLocked && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+                log.info("帖子清理任务分布式锁已释放");
+            }
+        }
+    }
+
+    /**
+     * 实际执行清理逻辑
+     */
+    private int doAutoCleanupExpiredPosts() {
         LocalDateTime thresholdTime = LocalDateTime.now().minusDays(autoCleanupDays);
         List<Post> postsToCleanup = postAdminMapper.getPostsToCleanup(thresholdTime);
 
         if (postsToCleanup.isEmpty()) {
+            log.info("没有找到需要清理的过期帖子");
             return 0;
         }
 

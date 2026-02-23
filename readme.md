@@ -52,7 +52,7 @@ http://localhost:8080/swagger-ui.html
 [@3xSu](https://github.com/3xSu)
 ## 参与贡献方式
 ### 分支管理：
-基于 develop 分支创建功能分支，命名格式为 feature/功能名称 或 fix/问题描述
+基于 develop 分支创建功能分支，命名格式为 [feat]功能名称 或 [fix]问题描述
 ### 代码规范：
 - 遵循 Java 编码规范，使用 Lombok 简化代码
 - 关键逻辑需添加注释，确保可读性

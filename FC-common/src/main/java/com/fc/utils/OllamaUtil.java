@@ -1,6 +1,9 @@
 package com.fc.utils;
 
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -8,6 +11,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -19,6 +23,9 @@ public class OllamaUtil {
     @Value("${ollama.api.model:llama2}")
     private String model;
 
+    @Autowired
+    private RedissonClient redissonClient;
+
     private final RestTemplate restTemplate;
 
     public OllamaUtil() {
@@ -29,6 +36,39 @@ public class OllamaUtil {
      * 生成电影评论AI总结
      */
     public String generateMovieCommentSummary(String movieTitle, String commentSamples, Integer summaryStyle, Integer maxLength) {
+        // 创建分布式锁，锁的key包含电影标题，确保同一电影串行处理
+        String lockKey = String.format("lock:movie:summary:%s", movieTitle.hashCode());
+        RLock lock = redissonClient.getLock(lockKey);
+
+        boolean isLocked = false;
+        try {
+            // 尝试获取锁，最多等待3秒，锁持有时间90秒
+            isLocked = lock.tryLock(3, 90, TimeUnit.SECONDS);
+            if (!isLocked) {
+                log.warn("获取分布式锁失败，电影《{}》的AI总结生成任务已被其他实例处理", movieTitle);
+                // 可以返回一个提示，或者抛出特定异常
+                return generateFallbackSummary(movieTitle, summaryStyle);
+            }
+
+            log.info("成功获取分布式锁，开始为电影《{}》生成AI总结", movieTitle);
+            return doGenerateMovieCommentSummary(movieTitle, commentSamples, summaryStyle, maxLength);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("获取分布式锁时被中断，电影《{}》", movieTitle, e);
+            return generateFallbackSummary(movieTitle, summaryStyle);
+        } finally {
+            if (isLocked && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+                log.info("已释放分布式锁，电影《{}》的AI总结生成完成", movieTitle);
+            }
+        }
+    }
+
+    /**
+     * 实际的AI总结生成逻辑（被锁保护的部分）
+     */
+    private String doGenerateMovieCommentSummary(String movieTitle, String commentSamples, Integer summaryStyle, Integer maxLength) {
         try {
             String prompt = buildMovieSummaryPrompt(movieTitle, commentSamples, summaryStyle, maxLength);
 
