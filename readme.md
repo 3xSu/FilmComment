@@ -1,6 +1,8 @@
 # FilmComment - 电影评论社区项目
 ## 项目简介
 FilmComment 是一个基于 Spring Boot 开发的电影评论平台，集成了 AI 智能总结电影评论功能。用户可以在平台上浏览电影信息、发表影评、参与讨论。
+
+📖 [详细功能介绍请查看 FEATURES.md](FEATURES.md)
 ## 背景
 随着电影产业的蓬勃发展，用户对电影的讨论和评价需求日益增长，但海量的评论信息给用户快速获取有效观点以及准确避开剧透信息带来了挑战。FilmComment 项目应运而生，旨在构建一个集电影评论发布、互动交流、创建防剧透分区和 AI 智能分析于一体的平台。
 ## 安装
@@ -21,7 +23,14 @@ git clone <项目仓库地址>
 cd FilmComment
 ```
 ### 配置数据库
-在MySQL Workbench运行FC_DB.sql
+在MySQL Workbench运行 sql/下的 FC_DB.sql 和 agent_tables.sql
+
+### 安装MCP服务器依赖
+在 `movie-mcp-server` 目录下运行：
+```bash
+npm install
+```
+
 ### 修改配置文件
 复制 application-dev.example.yml为 application-dev.yml并修改配置
 ### 构建项目

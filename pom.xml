@@ -42,6 +42,9 @@
         <tika>2.7.0</tika>
         <commons>2.9.0</commons>
         <redisson>3.27.0</redisson>
+        <caffeine>3.1.8</caffeine>
+        <langchain4j.version>1.12.1</langchain4j.version>
+        <jedis.version>4.4.0</jedis.version>
     </properties>
 
     <dependencyManagement>
@@ -166,6 +169,30 @@
                 <groupId>org.redisson</groupId>
                 <artifactId>redisson-spring-boot-starter</artifactId>
                 <version>${redisson}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine}</version>
+            </dependency>
+
+            <!-- LangChain4j -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j</artifactId>
+                <version>${langchain4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-ollama</artifactId>
+                <version>${langchain4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>redis.clients</groupId>
+                <artifactId>jedis</artifactId>
+                <version>${jedis.version}</version>
             </dependency>
 
         </dependencies>

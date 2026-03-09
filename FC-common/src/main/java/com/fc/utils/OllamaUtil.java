@@ -9,7 +9,9 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -25,6 +27,9 @@ public class OllamaUtil {
 
     @Autowired
     private RedissonClient redissonClient;
+    
+    @Autowired
+    private PromptManager promptManager;
 
     private final RestTemplate restTemplate;
 
@@ -102,20 +107,8 @@ public class OllamaUtil {
      * 构建AI提示词
      */
     private String buildMovieSummaryPrompt(String movieTitle, String commentSamples, Integer summaryStyle, Integer maxLength) {
-        String style = summaryStyle == 1 ? "简洁明了，突出重点" : "详细全面，包含具体例子";
-
-        return String.format(
-                "你是一个专业的电影评论分析师。请根据以下用户对电影《%s》的评论，生成一个%s的总结报告。\n\n" +
-                        "要求：\n" +
-                        "1. 分析评论中的主要观点和情感倾向\n" +
-                        "2. 总结突出的优点和主要槽点\n" +
-                        "3. 识别常见的关键词和主题\n" +
-                        "4. 评估总体评价倾向\n" +
-                        "5. 总结长度控制在%d字以内\n\n" +
-                        "用户评论样本：\n%s\n\n" +
-                        "请用中文回复，结构清晰，直接给出总结内容：",
-                movieTitle, style, maxLength, commentSamples
-        );
+        // 使用注入的PromptManager构建提示词
+        return promptManager.buildMovieCommentSummaryPrompt(movieTitle, commentSamples, summaryStyle, maxLength);
     }
 
     /**
@@ -142,5 +135,111 @@ public class OllamaUtil {
             log.warn("Ollama服务不可用: {}", e.getMessage());
             return false;
         }
+    }
+    
+    /**
+     * 生成文本的向量表示
+     * @param text 输入文本
+     * @return 向量表示
+     */
+    public List<Double> generateVector(String text) {
+        try {
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", model);
+            requestBody.put("prompt", text);
+            requestBody.put("stream", false);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            
+            // 使用 Ollama Embeddings API 端点
+            String url = baseUrl + "/api/embeddings";
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                // 解析真实的 Ollama API 响应获取向量
+                Map<String, Object> responseBody = response.getBody();
+                
+                // Ollama Embeddings API 返回格式：
+                // {
+                //   "embeddings": [[0.1, 0.2, 0.3, ...]]
+                // }
+                if (responseBody.containsKey("embeddings")) {
+                    List<List<Double>> embeddings = (List<List<Double>>) responseBody.get("embeddings");
+                    if (embeddings != null && !embeddings.isEmpty()) {
+                        return embeddings.get(0); // 返回第一个嵌入向量
+                    }
+                }
+                
+                // 如果响应格式不符合预期，记录警告并使用备用方案
+                log.warn("Ollama API 响应格式不符合预期: {}", responseBody);
+                return generateRandomVector();
+            } else {
+                log.error("Ollama API调用失败: {}", response.getStatusCode());
+                // 返回随机向量作为备用
+                return generateRandomVector();
+            }
+        } catch (Exception e) {
+            log.error("调用Ollama API生成向量失败", e);
+            // 返回随机向量作为备用
+            return generateRandomVector();
+        }
+    }
+    
+    /**
+     * 生成随机向量作为备用
+     * @return 随机向量
+     */
+    private List<Double> generateRandomVector() {
+        List<Double> vector = new ArrayList<>();
+        for (int i = 0; i < 128; i++) {
+            vector.add(Math.random());
+        }
+        return vector;
+    }
+    
+    /**
+     * 生成文本内容
+     * @param prompt 输入提示词
+     * @return 生成的文本内容
+     */
+    public String generateText(String prompt) {
+        try {
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", model);
+            requestBody.put("prompt", prompt);
+            requestBody.put("stream", false);
+            requestBody.put("options", Map.of("temperature", 0.7, "max_tokens", 500));
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            String url = baseUrl + "/api/generate";
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return (String) response.getBody().get("response");
+            } else {
+                log.error("Ollama API调用失败: {}", response.getStatusCode());
+                return generateFallbackText(prompt);
+            }
+        } catch (Exception e) {
+            log.error("调用Ollama API生成文本失败", e);
+            return generateFallbackText(prompt);
+        }
+    }
+    
+    /**
+     * 生成备用文本（当AI服务不可用时）
+     * @param prompt 原始提示词
+     * @return 备用文本
+     */
+    private String generateFallbackText(String prompt) {
+        log.warn("AI服务不可用，使用备用文本生成");
+        return "由于当前AI服务暂时不可用，无法生成智能推荐理由。请稍后重试。";
     }
 }
