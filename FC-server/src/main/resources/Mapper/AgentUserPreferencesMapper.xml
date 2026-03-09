@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fc.mapper.agent.AgentUserPreferencesMapper">
+
+    <!-- 插入或更新用户偏好（upsert操作） -->
+    <insert id="insertOrUpdate" parameterType="com.fc.entity.AgentUserPreferences">
+        INSERT INTO agent_user_preferences(user_id, favorite_genres, preferred_rating_range, disliked_movies, create_time, update_time)
+        VALUES(#{userId}, #{favoriteGenres}, #{preferredRatingRange}, #{dislikedMovies}, #{createTime}, #{updateTime})
+        ON DUPLICATE KEY UPDATE favorite_genres = VALUES(favorite_genres),
+        preferred_rating_range = VALUES(preferred_rating_range),
+        disliked_movies = VALUES(disliked_movies),
+        update_time = VALUES(update_time)
+    </insert>
+
+</mapper>
