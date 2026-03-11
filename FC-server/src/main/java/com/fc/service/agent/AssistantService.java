@@ -1,10 +1,10 @@
-package com.fc.agent.service;
+package com.fc.service.agent;
 
 /**
  * AI助手接口
  * 定义AI助手的能力和方法签名，用于AiServices自动生成实现
  */
-public interface Assistant {
+public interface AssistantService {
     
     /**
      * 与用户进行电影相关的智能对话

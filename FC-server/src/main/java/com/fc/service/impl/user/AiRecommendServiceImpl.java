@@ -1,6 +1,6 @@
 package com.fc.service.impl.user;
 
-import com.fc.agent.service.RagRecommendServiceImpl;
+import com.fc.service.impl.agent.RagRecommendServiceImpl;
 import com.fc.dto.movie.ai.MovieViewedDTO;
 import com.fc.exception.InvalidRatingException;
 import com.fc.exception.RecommendAlgorithmException;

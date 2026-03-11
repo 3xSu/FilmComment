@@ -69,3 +69,78 @@ SELECT
     SUM(CASE WHEN success = FALSE THEN 1 ELSE 0 END) AS failure_count
 FROM agent_tool_usage
 GROUP BY tool_name;
+
+
+USE FilmComment_DB;
+
+-- =============================================
+-- 1. 索引优化 - 提升清理性能
+-- =============================================
+
+-- 1.1 为agent_conversation_history表添加清理专用索引
+-- 优化基于时间的批量删除操作
+CREATE INDEX IF NOT EXISTS idx_agent_conversation_cleanup_time 
+ON agent_conversation_history(create_time);
+
+-- 优化按用户和时间的查询性能
+CREATE INDEX IF NOT EXISTS idx_agent_conversation_cleanup_user_time 
+ON agent_conversation_history(user_id, create_time);
+
+-- 1.2 为agent_tool_usage表添加清理相关索引
+-- 优化工具使用记录的清理性能
+CREATE INDEX IF NOT EXISTS idx_agent_tool_usage_cleanup_time 
+ON agent_tool_usage(create_time);
+
+-- 优化按会话和时间的查询
+CREATE INDEX IF NOT EXISTS idx_agent_tool_usage_session_time 
+ON agent_tool_usage(session_id, create_time);
+
+-- =============================================
+-- 2. 清理统计视图 - 监控清理效果
+-- =============================================
+
+-- 2.1 对话历史清理统计视图
+CREATE OR REPLACE VIEW agent_conversation_cleanup_stats AS
+SELECT 
+    DATE(create_time) as cleanup_date,
+    COUNT(*) as total_records,
+    COUNT(CASE WHEN create_time < DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as expired_records,
+    COUNT(CASE WHEN create_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as active_records,
+    ROUND(
+        COUNT(CASE WHEN create_time < DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) * 100.0 / COUNT(*), 
+        2
+    ) as expired_percentage
+FROM agent_conversation_history
+GROUP BY DATE(create_time)
+ORDER BY cleanup_date DESC;
+
+-- 2.2 工具使用记录清理统计视图
+CREATE OR REPLACE VIEW agent_tool_usage_cleanup_stats AS
+SELECT 
+    DATE(create_time) as cleanup_date,
+    tool_name,
+    COUNT(*) as total_usage,
+    COUNT(CASE WHEN create_time < DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as expired_usage,
+    COUNT(CASE WHEN create_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as active_usage,
+    AVG(execution_time_ms) as avg_execution_time,
+    SUM(CASE WHEN success = TRUE THEN 1 ELSE 0 END) as success_count,
+    SUM(CASE WHEN success = FALSE THEN 1 ELSE 0 END) as failure_count
+FROM agent_tool_usage
+GROUP BY DATE(create_time), tool_name
+ORDER BY cleanup_date DESC, total_usage DESC;
+
+-- 2.3 用户对话统计视图（增强版）
+CREATE OR REPLACE VIEW agent_conversation_user_stats AS
+SELECT
+    user_id,
+    COUNT(*) AS total_messages,
+    COUNT(CASE WHEN message_role = 'user' THEN 1 END) AS user_messages,
+    COUNT(CASE WHEN message_role = 'assistant' THEN 1 END) AS assistant_messages,
+    MAX(create_time) AS last_conversation_time,
+    MIN(create_time) AS first_conversation_time,
+    COUNT(CASE WHEN create_time >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) AS recent_7d_messages,
+    COUNT(CASE WHEN create_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) AS recent_30d_messages,
+    COUNT(CASE WHEN create_time < DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) AS expired_messages
+FROM agent_conversation_history
+GROUP BY user_id
+ORDER BY total_messages DESC;

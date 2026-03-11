@@ -25,19 +25,67 @@ cd FilmComment
 ### 配置数据库
 在MySQL Workbench运行 sql/下的 FC_DB.sql 和 agent_tables.sql
 
-### 安装MCP服务器依赖
-在 `movie-mcp-server` 目录下运行：
+### 启动Redis服务
+项目依赖Redis进行缓存和会话管理，请确保Redis服务已启动：
+
+**Windows系统：**
+```bash
+# 如果已安装Redis服务，启动服务
+redis-server
+
+# 或者使用Windows服务方式（如果已安装为服务）
+net start redis
+```
+
+**Linux/macOS系统：**
+```bash
+# 启动Redis服务
+redis-server
+
+# 或者使用systemd（如果已安装为服务）
+sudo systemctl start redis
+```
+
+### 启动MCP服务器
+项目依赖MCP服务器提供AI电影数据服务，需要单独启动：
+
+1. **进入MCP服务器目录**
+```bash
+cd movie-mcp-server
+```
+
+2. **安装依赖**
 ```bash
 npm install
 ```
 
+3. **配置环境变量**
+复制 `.env.example` 为 `.env` 并配置TMDB API密钥：
+```bash
+cp .env.example .env
+# 编辑.env文件，填入TMDB API密钥
+```
+
+4. **启动MCP服务器**
+```bash
+# 开发模式
+npm run dev
+
+# 生产模式
+npm run build && npm start
+```
+
+MCP服务器默认运行在 http://localhost:3000
+
 ### 修改配置文件
 复制 application-dev.example.yml为 application-dev.yml并修改配置
+
 ### 构建项目
 ```
 # 安装依赖
 mvn clean install
 ```
+
 ### 运行项目
 ```
 mvn spring-boot:run

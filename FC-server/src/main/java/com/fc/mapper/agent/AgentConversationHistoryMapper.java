@@ -5,6 +5,7 @@ import com.fc.entity.AgentConversationHistory;
 import com.fc.enumeration.OperationType;
 import org.apache.ibatis.annotations.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -77,4 +78,29 @@ public interface AgentConversationHistoryMapper {
      */
     @Select("SELECT MAX(create_time) FROM agent_conversation_history WHERE user_id = #{userId}")
     String getLastConversationTimeByUserId(@Param("userId") Long userId);
+
+    /**
+     * 基于时间批量删除对话历史记录
+     * @param cutoffTime 截止时间
+     * @return 删除的记录数
+     */
+    int deleteByCreateTimeBefore(@Param("cutoffTime") LocalDateTime cutoffTime);
+
+    /**
+     * 统计截止时间前的对话历史记录数量
+     * @param cutoffTime 截止时间
+     * @return 记录数量
+     */
+    int countByCreateTimeBefore(@Param("cutoffTime") LocalDateTime cutoffTime);
+
+    /**
+     * 分页查询截止时间前的对话历史记录
+     * @param cutoffTime 截止时间
+     * @param limit 限制数量
+     * @return 对话历史记录列表
+     */
+    List<AgentConversationHistory> selectByCreateTimeBefore(
+        @Param("cutoffTime") LocalDateTime cutoffTime, 
+        @Param("limit") int limit
+    );
 }

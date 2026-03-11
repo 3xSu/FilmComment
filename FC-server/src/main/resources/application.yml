@@ -131,3 +131,16 @@ agent:
   memory:
     max-messages: 10
     timeout-minutes: 30
+  conversation:
+    cleanup:
+      enabled: true
+      # 清理策略配置
+      strategy: TIME_BASED  # TIME_BASED, COUNT_BASED, ACTIVITY_BASED
+      retention-days: 30    # 保留30天数据
+      retention-count: 1000 # 保留最近1000条记录
+      batch-size: 1000      # 每次批量删除数量
+      # 执行时间配置
+      execution-time: "04:00" # 凌晨4点执行
+      # 监控配置
+      enable-statistics: true
+      log-details: true
