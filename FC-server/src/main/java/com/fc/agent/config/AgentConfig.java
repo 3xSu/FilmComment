@@ -1,6 +1,6 @@
 package com.fc.agent.config;
 
-import com.fc.agent.service.Assistant;
+import com.fc.service.agent.AssistantService;
 import com.fc.agent.tools.HistoryRecommendTool;
 import com.fc.agent.tools.MCPToolAdapter;
 import com.fc.agent.tools.MovieSearchTool;
@@ -67,14 +67,14 @@ public class AgentConfig {
      * @return AI助手实例
      */
     @Bean
-    public Assistant movieAssistant(ChatModel model, ChatMemory chatMemory, 
+    public AssistantService movieAssistant(ChatModel model, ChatMemory chatMemory, 
                                    MovieSearchTool movieSearchTool, 
                                    HistoryRecommendTool userAwareHistoryRecommendTool, 
                                    MCPToolAdapter mcpToolAdapter,
                                    PromptManager promptManager) {
         log.info("初始化AI助手，集成用户上下文感知工具和优化提示词");
         
-        return AiServices.builder(Assistant.class)
+        return AiServices.builder(AssistantService.class)
                 .chatModel(model)
                 .tools(movieSearchTool, userAwareHistoryRecommendTool, mcpToolAdapter)
                 .chatMemory(chatMemory)

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fc.mapper.agent.AgentConversationHistoryMapper">
+
+    <!-- 基于时间的批量删除 -->
+    <delete id="deleteByCreateTimeBefore" parameterType="java.time.LocalDateTime">
+        DELETE FROM agent_conversation_history 
+        WHERE create_time &lt; #{cutoffTime}
+        ORDER BY create_time ASC
+        LIMIT 1000
+    </delete>
+
+    <!-- 统计截止时间前的对话历史记录数量 -->
+    <select id="countByCreateTimeBefore" parameterType="java.time.LocalDateTime" resultType="int">
+        SELECT COUNT(*) FROM agent_conversation_history 
+        WHERE create_time &lt; #{cutoffTime}
+    </select>
+
+    <!-- 分页查询截止时间前的对话历史记录 -->
+    <select id="selectByCreateTimeBefore" parameterType="map" resultType="com.fc.entity.AgentConversationHistory">
+        SELECT * FROM agent_conversation_history 
+        WHERE create_time &lt; #{cutoffTime}
+        ORDER BY create_time ASC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

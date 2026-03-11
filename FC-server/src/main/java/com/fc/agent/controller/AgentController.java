@@ -1,6 +1,6 @@
 package com.fc.agent.controller;
 
-import com.fc.agent.service.Assistant;
+import com.fc.service.agent.AssistantService;
 import com.fc.context.BaseContext;
 import com.fc.dto.agent.AgentRequest;
 import com.fc.dto.agent.AgentResponse;
@@ -31,7 +31,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AgentController {
     
-    private final Assistant movieAssistant;
+    private final AssistantService movieAssistant;
     private final AgentConversationService agentConversationService;
     
     /**

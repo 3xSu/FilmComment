@@ -1,7 +1,8 @@
-package com.fc.agent.service;
+package com.fc.service.impl.agent;
 
 import com.fc.entity.Movie;
 import com.fc.mapper.api.MoviePublicMapper;
+import com.fc.service.agent.MovieVectorService;
 import com.fc.utils.OllamaUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMap;
@@ -15,12 +16,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 电影向量服务
+ * 电影向量服务实现类
  * 负责电影向量的存储、检索和相似度计算
  */
 @Service
 @Slf4j
-public class MovieVectorService {
+public class MovieVectorServiceImpl implements MovieVectorService {
     
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -99,66 +100,20 @@ public class MovieVectorService {
     public Map<Long, BigDecimal> calculateMovieSimilarity(List<Double> userVector) {
         Map<Long, BigDecimal> similarityMap = new HashMap<>();
         
-        try {
-            // 使用 Redisson 进行向量相似度搜索
-            // 获取所有电影向量
-            RMap<Long, List<Double>> movieVectors = redissonClient.getMap("movie_vectors");
-            
-            if (movieVectors.isEmpty()) {
-                log.warn("电影向量库为空，使用备用方案");
-                return calculateMovieSimilarityFallback(userVector);
-            }
-            
-            // 计算与每个电影向量的相似度
-            for (Map.Entry<Long, List<Double>> entry : movieVectors.entrySet()) {
+        // 获取所有电影向量
+        RMap<Long, List<Double>> movieVectors = redissonClient.getMap("movie_vectors");
+        
+        for (Map.Entry<Long, List<Double>> entry : movieVectors.entrySet()) {
+            try {
                 Long movieId = entry.getKey();
                 List<Double> movieVector = entry.getValue();
                 
-                if (movieVector != null && movieVector.size() == userVector.size()) {
-                    BigDecimal similarity = cosineSimilarity(userVector, movieVector);
-                    similarityMap.put(movieId, similarity);
-                }
-            }
-            
-            // 只返回相似度最高的20个结果
-            return similarityMap.entrySet().stream()
-                    .sorted(Map.Entry.<Long, BigDecimal>comparingByValue().reversed())
-                    .limit(20)
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                    
-        } catch (Exception e) {
-            log.error("使用 Redisson 计算电影相似度失败，使用备用方案", e);
-            // 降级到基础实现
-            return calculateMovieSimilarityFallback(userVector);
-        }
-    }
-    
-    /**
-     * 备用相似度计算方案（当 RedisSearch 不可用时）
-     */
-    private Map<Long, BigDecimal> calculateMovieSimilarityFallback(List<Double> userVector) {
-        Map<Long, BigDecimal> similarityMap = new HashMap<>();
-        
-        // 获取所有电影ID
-        Set<String> keys = redisTemplate.keys(MOVIE_VECTOR_PREFIX + "*");
-        
-        if (keys == null || keys.isEmpty()) {
-            log.warn("电影向量库为空，请先初始化");
-            return similarityMap;
-        }
-        
-        for (String key : keys) {
-            try {
-                Long movieId = extractMovieIdFromKey(key);
-                List<Double> movieVector = (List<Double>) redisTemplate.opsForValue().get(key);
-                
-                if (movieVector != null && movieVector.size() == userVector.size()) {
-                    BigDecimal similarity = cosineSimilarity(userVector, movieVector);
-                    similarityMap.put(movieId, similarity);
-                }
+                // 计算余弦相似度
+                BigDecimal similarity = calculateCosineSimilarity(userVector, movieVector);
+                similarityMap.put(movieId, similarity);
                 
             } catch (Exception e) {
-                log.error("计算电影相似度失败: key={}", key, e);
+                log.error("计算电影相似度失败: movieId={}", entry.getKey(), e);
             }
         }
         
@@ -166,10 +121,10 @@ public class MovieVectorService {
     }
     
     /**
-     * 余弦相似度计算
+     * 计算余弦相似度
      */
-    private BigDecimal cosineSimilarity(List<Double> vectorA, List<Double> vectorB) {
-        if (vectorA.size() != vectorB.size()) {
+    private BigDecimal calculateCosineSimilarity(List<Double> vectorA, List<Double> vectorB) {
+        if (vectorA == null || vectorB == null || vectorA.size() != vectorB.size()) {
             return BigDecimal.ZERO;
         }
         
@@ -192,31 +147,26 @@ public class MovieVectorService {
     }
     
     /**
-     * 从key中提取电影ID
+     * 根据电影ID获取向量
      */
-    private Long extractMovieIdFromKey(String key) {
-        return Long.parseLong(key.replace(MOVIE_VECTOR_PREFIX, ""));
+    public List<Double> getMovieVector(Long movieId) {
+        RMap<Long, List<Double>> movieVectors = redissonClient.getMap("movie_vectors");
+        return movieVectors.get(movieId);
     }
     
     /**
-     * 获取相似度最高的电影
+     * 获取所有电影向量
      */
-    public List<Long> getTopSimilarMovies(List<Double> userVector, int topK) {
-        Map<Long, BigDecimal> similarityMap = calculateMovieSimilarity(userVector);
-        
-        return similarityMap.entrySet().stream()
-                .sorted(Map.Entry.<Long, BigDecimal>comparingByValue().reversed())
-                .limit(topK)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+    public Map<Long, List<Double>> getAllMovieVectors() {
+        RMap<Long, List<Double>> movieVectors = redissonClient.getMap("movie_vectors");
+        return movieVectors;
     }
     
     /**
-     * 将向量转换为字符串格式
+     * 检查电影向量库是否已初始化
      */
-    private String vectorToString(List<Double> vector) {
-        return vector.stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining(","));
+    public boolean isInitialized() {
+        RMap<Long, List<Double>> movieVectors = redissonClient.getMap("movie_vectors");
+        return movieVectors != null && !movieVectors.isEmpty();
     }
 }

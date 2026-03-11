@@ -1,7 +1,6 @@
 package com.fc.agent.config;
 
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -60,12 +59,80 @@ public class AgentMonitoringConfig {
      * @return Gauge实例
      */
     @Bean
-    public io.micrometer.core.instrument.Gauge agentSessionGauge(MeterRegistry registry) {
+    public Gauge agentSessionGauge(MeterRegistry registry) {
         // 使用AtomicInteger来跟踪活跃会话数量
         AtomicInteger activeSessions = new AtomicInteger(0);
         
-        return io.micrometer.core.instrument.Gauge.builder("agent.sessions.active", activeSessions, AtomicInteger::get)
+        return Gauge.builder("agent.sessions.active", activeSessions, AtomicInteger::get)
                 .description("活跃的Agent会话数量")
+                .register(registry);
+    }
+    
+    /**
+     * 清理任务执行时间监控
+     * 
+     * @param registry MeterRegistry实例
+     * @return Timer实例
+     */
+    @Bean
+    public Timer agentCleanupTimer(MeterRegistry registry) {
+        return Timer.builder("agent.cleanup.time")
+                .description("Agent对话清理执行时间")
+                .register(registry);
+    }
+    
+    /**
+     * 清理记录数量监控
+     * 
+     * @param registry MeterRegistry实例
+     * @return Counter实例
+     */
+    @Bean
+    public Counter agentCleanupCounter(MeterRegistry registry) {
+        return Counter.builder("agent.cleanup.records")
+                .description("Agent对话清理记录数量")
+                .register(registry);
+    }
+    
+    /**
+     * 清理任务执行次数监控
+     * 
+     * @param registry MeterRegistry实例
+     * @return Counter实例
+     */
+    @Bean
+    public Counter agentCleanupExecutionCounter(MeterRegistry registry) {
+        return Counter.builder("agent.cleanup.executions")
+                .description("Agent对话清理任务执行次数")
+                .register(registry);
+    }
+    
+    /**
+     * 清理任务失败次数监控
+     * 
+     * @param registry MeterRegistry实例
+     * @return Counter实例
+     */
+    @Bean
+    public Counter agentCleanupFailureCounter(MeterRegistry registry) {
+        return Counter.builder("agent.cleanup.failures")
+                .description("Agent对话清理任务失败次数")
+                .register(registry);
+    }
+    
+    /**
+     * 待清理记录数量监控
+     * 
+     * @param registry MeterRegistry实例
+     * @return Gauge实例
+     */
+    @Bean
+    public Gauge agentCleanupPendingGauge(MeterRegistry registry) {
+        // 使用AtomicInteger来跟踪待清理记录数量
+        AtomicInteger pendingRecords = new AtomicInteger(0);
+        
+        return Gauge.builder("agent.cleanup.pending", pendingRecords, AtomicInteger::get)
+                .description("待清理的Agent对话记录数量")
                 .register(registry);
     }
 }
